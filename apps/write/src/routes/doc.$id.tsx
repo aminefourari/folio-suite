@@ -7,10 +7,10 @@ import {
 } from 'lucide-react'
 import { DOC_FONTS } from '@folio/ui/apps.tsx'
 import { useAutosave } from '@folio/ui/autosave.tsx'
-import { EditorBar, Tool, WideTool } from '@folio/ui/chrome.tsx'
+import { EditorBar, ShareDialog, Tool, WideTool } from '@folio/ui/chrome.tsx'
 import { Select } from '@folio/ui/Select.tsx'
 import { download, escapeHtml, pickFile, sanitize } from '@folio/ui/util.ts'
-import { createDoc, getDoc, saveDoc } from '../docs'
+import { createDoc, getDoc, saveDoc, shareDoc } from '../docs'
 
 export const Route = createFileRoute('/doc/$id')({
   loader: ({ params }) => getDoc({ data: Number(params.id) }),
@@ -37,11 +37,13 @@ const SIZE_OPTIONS = SIZES.map((s) => ({ value: s, label: s }))
 // ponytail: document.execCommand is deprecated but universally supported; swap for TipTap/Lexical if you need collaboration or a real document model.
 const exec = (cmd: string, value?: string) => document.execCommand(cmd, false, value)
 
-function Editor({ doc }: { doc: { id: number; title: string; content: string } }) {
+function Editor({ doc }: { doc: { id: number; title: string; content: string; share_id: string | null } }) {
   const page = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const [tab, setTab] = useState('Home')
   const [title, setTitle] = useState(doc.title)
+  const [shareId, setShareId] = useState(doc.share_id)
+  const [sharing, setSharing] = useState(false)
   const [active, setActive] = useState<Record<string, boolean>>({})
   const [block, setBlock] = useState('p')
   const [font, setFont] = useState('Inter')
@@ -144,7 +146,8 @@ function Editor({ doc }: { doc: { id: number; title: string; content: string } }
 
   return (
     <div className="app">
-      <EditorBar app="write" title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}>
+      <EditorBar app="write" title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}
+        onShare={() => setSharing(true)} shared={!!shareId}>
         <button className="btn ghost" onClick={() => window.print()}><Printer size={16} />Print</button>
         <button className="btn accent" onClick={downloadDoc}><Download size={16} /><span className="label">Download</span></button>
       </EditorBar>
@@ -241,6 +244,8 @@ function Editor({ doc }: { doc: { id: number; title: string; content: string } }
           <span className="pct">{zoom}%</span>
         </div>
       </footer>
+      <ShareDialog app="write" open={sharing} onClose={() => setSharing(false)} title={title} shareId={shareId}
+        onToggle={async (on) => { const id = await shareDoc({ data: { id: doc.id, on } }); setShareId(id); return id }} />
     </div>
   )
 }

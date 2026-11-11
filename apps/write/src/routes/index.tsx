@@ -1,21 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { FileHome } from '@folio/ui/chrome.tsx'
-import { plainText } from '@folio/ui/util.ts'
-import { createDoc, deleteDoc, listDocs } from '../docs'
+import { PaperThumb, TEMPLATES, fillTemplate } from '../templates.tsx'
+import { createDoc, deleteDoc, duplicateDoc, listDocs, renameDoc, shareDoc } from '../docs'
 
 export const Route = createFileRoute('/')({
   loader: () => listDocs(),
   component: function Home() {
     return (
-      <FileHome app="write" docs={Route.useLoaderData()}
-        create={() => createDoc({ data: {} })}
+      <FileHome app="write" docs={Route.useLoaderData()} templates={TEMPLATES}
+        create={(t) => createDoc({ data: t ? { ...t, content: fillTemplate(t.content) } : {} })}
+        rename={(id, title) => renameDoc({ data: { id, title } })}
+        duplicate={(id) => duplicateDoc({ data: id })}
+        share={(id, on) => shareDoc({ data: { id, on } })}
         remove={(id) => deleteDoc({ data: id })}
-        preview={(d) => (
-          <div className="paper-thumb">
-            {d.title && <b>{d.title}</b>}
-            <p>{plainText(d.preview) || <span className="muted">Empty document</span>}</p>
-          </div>
-        )} />
+        preview={(d) => <PaperThumb title={d.title} html={d.preview} />} />
     )
   },
 })

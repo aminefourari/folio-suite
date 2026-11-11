@@ -16,9 +16,16 @@ deployed as Cloudflare Workers, with files stored in Cloudflare D1 (SQLite).
 - **Write**: rich text with styles, Google Fonts, real point sizes, lists, tables, images and links. Download as `.doc`, print or save as PDF.
 - **Grid**: formulas (`SUM`, `AVERAGE`, `IF`, `ROUND` and more), range selection, copy and paste with other spreadsheets, number formats, AutoSum, undo and redo, column resizing, and CSV import and export.
 - **Stage**: layouts, six themes, speaker notes, drag-to-reorder slides, a full-screen presenter, and PDF export.
-- **Everywhere**: autosave (debounced, plus Cmd/Ctrl+S, on tab hide and on leaving), custom accessible selects, light and dark mode, and phone layouts.
+- **Accounts**: email and password sign-in with [Better Auth](https://better-auth.com), stored in D1. One sign-in works across all three apps. The account page lets you rename yourself, change your password, sign out everywhere and delete your account (which deletes your files).
+- **Files**: templates, search, sort, rename, duplicate, and read-only share links you can turn off at any time.
+- **Everywhere**: autosave (debounced, plus Cmd/Ctrl+S, on tab hide and on leaving), custom accessible selects and menus, light and dark mode, and phone layouts.
 
-Files belong to the browser that made them, through an anonymous `HttpOnly` cookie. There are no accounts, so files don't sync between devices.
+### How sign-in works across apps
+
+Each app is a separate `*.workers.dev` host, and browsers won't share a cookie between them. The landing app is the
+sign-in hub: an app with no session sends you to the hub, which hands back a one-minute, single-use token that the
+app swaps for its own session cookie. All apps share one session row in D1, so signing out anywhere signs you out
+everywhere. See [docs/PLAN.md](docs/PLAN.md) for the details and the security notes.
 
 ## Development
 
@@ -26,11 +33,21 @@ Requires Node 22+ and pnpm 10.
 
 ```sh
 pnpm install
-pnpm dev          # all four apps (ports 3000–3003), each with a local D1
+openssl rand -base64 32                 # put it in .dev.vars in every app, see .dev.vars.example
+pnpm dev                                # migrates the local D1, then starts ports 3000–3003
 pnpm typecheck
-pnpm test         # formula engine and CSV tests (node --test)
+pnpm test                               # formula, CSV, password hashing and redirect-guard tests
 pnpm build
-pnpm run deploy   # build and deploy every app with wrangler (`pnpm deploy` is a pnpm built-in)
+```
+
+Open http://localhost:3000 to create an account. All apps share one local D1 under `.wrangler/state`.
+
+### Deploying
+
+```sh
+pnpm db:migrate:remote                  # apply packages/ui/migrations to the production D1
+wrangler secret put BETTER_AUTH_SECRET  # in each apps/* folder, the same value for all four
+pnpm run deploy                         # `pnpm deploy` is a pnpm built-in, so use `run`
 ```
 
 ## Layout

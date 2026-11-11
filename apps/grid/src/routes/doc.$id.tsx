@@ -4,7 +4,7 @@ import {
   AlignCenter, AlignLeft, AlignRight, Bold, Download, Eraser, FunctionSquare, Italic, Redo2, Sigma, Undo2, Upload,
 } from 'lucide-react'
 import { useAutosave } from '@folio/ui/autosave.tsx'
-import { EditorBar, Tool } from '@folio/ui/chrome.tsx'
+import { EditorBar, ShareDialog, Tool } from '@folio/ui/chrome.tsx'
 import { Select } from '@folio/ui/Select.tsx'
 import { download, pickFile } from '@folio/ui/util.ts'
 import { Err, FUNCTION_NAMES, colName, parseRef, ref } from '../formula.ts'
@@ -12,7 +12,7 @@ import {
   COLS, ROWS, display, evaluator, parse, parseCsv, serialize, toCsv,
   type Align, type Cell, type Cells, type Fmt,
 } from '../sheet.ts'
-import { createDoc, getDoc, saveDoc } from '../docs'
+import { createDoc, getDoc, saveDoc, shareDoc } from '../docs'
 
 export const Route = createFileRoute('/doc/$id')({
   loader: ({ params }) => getDoc({ data: Number(params.id) }),
@@ -35,10 +35,12 @@ const FN_OPTIONS = FUNCTION_NAMES.map((f) => ({ value: f, label: f }))
 const clamp = ([c, r]: Pos): Pos => [Math.max(0, Math.min(COLS - 1, c)), Math.max(0, Math.min(ROWS - 1, r))]
 const MIME = 'application/x-folio-grid'
 
-function Sheet({ doc }: { doc: { id: number; title: string; content: string } }) {
+function Sheet({ doc }: { doc: { id: number; title: string; content: string; share_id: string | null } }) {
   const navigate = useNavigate()
   const initial = useMemo(() => parse(doc.content), [doc.content])
   const [title, setTitle] = useState(doc.title)
+  const [shareId, setShareId] = useState(doc.share_id)
+  const [sharing, setSharing] = useState(false)
   const [cells, setCells] = useState<Cells>(initial.cells)
   const [widths, setWidths] = useState(initial.widths)
   const [past, setPast] = useState<Cells[]>([])
@@ -305,7 +307,8 @@ function Sheet({ doc }: { doc: { id: number; title: string; content: string } })
 
   return (
     <div className="app">
-      <EditorBar app="grid" title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}>
+      <EditorBar app="grid" title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}
+        onShare={() => setSharing(true)} shared={!!shareId}>
         <button className="btn ghost" onClick={importCsv}><Upload size={16} />Import CSV</button>
         <button className="btn accent" onClick={exportCsv}><Download size={16} /><span className="label">Download CSV</span></button>
       </EditorBar>
@@ -434,6 +437,8 @@ function Sheet({ doc }: { doc: { id: number; title: string; content: string } })
           <span>Count <b>{totals.count}</b></span>
         </>)}
       </footer>
+      <ShareDialog app="grid" open={sharing} onClose={() => setSharing(false)} title={title} shareId={shareId}
+        onToggle={async (on) => { const id = await shareDoc({ data: { id: doc.id, on } }); setShareId(id); return id }} />
     </div>
   )
 }

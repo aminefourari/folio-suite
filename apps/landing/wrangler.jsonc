@@ -6,5 +6,6 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "d1_databases": [{ "binding": "DB", "database_name": "folio", "database_id": "858cb310-63cf-4f85-ba88-da2c75ce4111", "migrations_dir": "../../packages/ui/migrations" }]
 }

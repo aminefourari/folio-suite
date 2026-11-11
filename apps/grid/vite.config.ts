@@ -5,5 +5,8 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   server: { port: 3002, strictPort: true },
-  plugins: [cloudflare({ viteEnvironment: { name: 'ssr' }, inspectorPort: false }), tanstackStart(), react()],
+  // Pre-bundle up front; discovering it mid-request reloads the server once and can mix two React copies in SSR.
+  optimizeDeps: { include: ['better-auth/react'] },
+  environments: { ssr: { optimizeDeps: { include: ['better-auth/react'] } } },
+  plugins: [cloudflare({ viteEnvironment: { name: 'ssr' }, inspectorPort: false, persistState: { path: '../../.wrangler/state' } }), tanstackStart(), react()],
 })
