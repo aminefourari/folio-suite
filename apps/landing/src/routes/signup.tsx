@@ -38,7 +38,7 @@ function Signup() {
   return (
     <AuthShell title="Create your account" subtitle="One account for Folio Write, Grid and Stage. Free, no card needed."
       footer={<>Already have an account? <Link to="/login" search={{ to }}>Sign in</Link></>}>
-      <form onSubmit={submit} className="auth-form">
+      <form method="post" onSubmit={submit} className="auth-form">
         <Field label="Name" name="name" autoComplete="name" required maxLength={80} autoFocus />
         <Field label="Email" name="email" type="email" autoComplete="email" required />
         <Field label="Password" name="password" type="password" autoComplete="new-password" required minLength={8} maxLength={128}

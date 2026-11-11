@@ -37,7 +37,7 @@ function Login() {
   return (
     <AuthShell title="Welcome back" subtitle="Sign in to open your documents, spreadsheets and presentations."
       footer={<>New to Folio? <Link to="/signup" search={{ to }}>Create an account</Link></>}>
-      <form onSubmit={submit} className="auth-form">
+      <form method="post" onSubmit={submit} className="auth-form">
         <Field label="Email" name="email" type="email" autoComplete="email" required autoFocus />
         <Field label="Password" name="password" type="password" autoComplete="current-password" required minLength={8} />
         {err && <p className="form-error" role="alert">{err}</p>}

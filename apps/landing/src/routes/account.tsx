@@ -57,7 +57,7 @@ function Account() {
 
       <div className="panels">
         <Panel icon={<UserRound size={20} />} title="Profile" text="Your name appears on files you share.">
-          <form className="auth-form" onSubmit={(e) => {
+          <form method="post" className="auth-form" onSubmit={(e) => {
             e.preventDefault()
             const name = String(new FormData(e.currentTarget).get('name')).trim()
             saveProfile(async () => { await must(authClient().updateUser({ name })); await router.invalidate(); return 'Profile updated' })
@@ -70,7 +70,7 @@ function Account() {
         </Panel>
 
         <Panel icon={<KeyRound size={20} />} title="Password" text="Use at least 8 characters. A passphrase is easiest to remember.">
-          <form className="auth-form" onSubmit={(e) => {
+          <form method="post" className="auth-form" onSubmit={(e) => {
             e.preventDefault()
             const form = e.currentTarget
             const f = new FormData(form)
@@ -103,7 +103,7 @@ function Account() {
         </Panel>
 
         <Panel danger icon={<ShieldAlert size={20} />} title="Delete account" text="Permanently deletes your account and every document, spreadsheet and presentation. This can’t be undone.">
-          <form className="auth-form" onSubmit={(e) => {
+          <form method="post" className="auth-form" onSubmit={(e) => {
             e.preventDefault()
             const pw = String(new FormData(e.currentTarget).get('password'))
             if (!confirm('Delete your account and all your files? This can’t be undone.')) return
