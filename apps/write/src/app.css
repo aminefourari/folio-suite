@@ -1,0 +1,42 @@
+/* App accent (kept in sync with APPS in packages/ui/src/apps.tsx). */
+:root { --app: #6d5dfc; }
+
+.canvas { flex: 1; overflow: auto; padding: 28px 16px 64px; }
+.page {
+  width: 8.5in; max-width: 100%; min-height: 11in; margin: 0 auto; padding: 1in;
+  background: #fff; color: #1f1f1f; border-radius: 6px; box-shadow: var(--paper-shadow);
+  outline: none; caret-color: var(--app);
+  font-family: 'Inter', sans-serif; font-size: 11pt; line-height: 1.55;
+}
+.page:empty::before { content: 'Start typing…'; color: #a1a1aa; }
+.page h1 { font-size: 26pt; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 10pt; }
+.page h2 { font-size: 17pt; font-weight: 650; letter-spacing: -0.01em; margin: 16pt 0 6pt; }
+.page h3 { font-size: 13pt; font-weight: 650; margin: 12pt 0 4pt; }
+.page p { margin: 0 0 8pt; }
+.page blockquote { margin: 0 0 8pt; padding: 2pt 0 2pt 12pt; border-left: 3px solid var(--app); color: #52525b; font-style: italic; }
+.page pre { margin: 0 0 8pt; padding: 10pt 12pt; border-radius: 8px; background: #f4f4f5; font-family: 'JetBrains Mono', monospace; font-size: 10pt; white-space: pre-wrap; }
+.page table { border-collapse: collapse; width: 100%; margin-bottom: 8pt; }
+.page td { border: 1px solid #d4d4d8; padding: 5px 8px; min-width: 40px; }
+.page img { max-width: 100%; border-radius: 4px; }
+.page a { color: #4f46e5; }
+.page hr { border: 0; border-top: 1px solid #d4d4d8; margin: 12pt 0; }
+.page ::selection { background: color-mix(in srgb, var(--app) 25%, transparent); }
+
+.paper-thumb {
+  position: absolute; inset: 18px 18px 0; padding: 14px; border-radius: 8px 8px 0 0;
+  background: #fff; color: #3f3f46; font-size: 10px; line-height: 1.55; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(24, 24, 27, 0.05);
+}
+.paper-thumb b { display: block; margin-bottom: 6px; font-size: 12px; color: #18181b; letter-spacing: -0.01em; }
+.paper-thumb p { margin: 0; }
+.paper-thumb::after { content: ''; position: absolute; inset: auto 0 0; height: 48px; background: linear-gradient(transparent, #fff); }
+
+@media (max-width: 640px) {
+  .canvas { padding: 16px 12px 48px; }
+  .page { padding: 28px 24px; min-height: 70vh; }
+  .paper-thumb { inset: 10px 10px 0; }
+}
+@media print {
+  .canvas { padding: 0; overflow: visible; }
+  .page { box-shadow: none; padding: 0; width: auto; min-height: 0; zoom: 1 !important; border-radius: 0; }
+}

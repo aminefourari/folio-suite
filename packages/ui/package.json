@@ -1,0 +1,6 @@
+{
+  "name": "@folio/ui",
+  "private": true,
+  "type": "module",
+  "exports": { "./*": "./src/*" }
+}

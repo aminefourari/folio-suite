@@ -1,0 +1,2 @@
+# Copy to .dev.vars in each app. All four apps must use the same value.
+BETTER_AUTH_SECRET=generate-with-openssl-rand-base64-32
