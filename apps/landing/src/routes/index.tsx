@@ -34,11 +34,11 @@ function Landing() {
       <section className="l-hero">
         <p className="l-eyebrow">A calm little office suite</p>
         <h1>Write, calculate and present, <span>without the clutter.</span></h1>
-        <p className="l-lede">Folio is three focused apps that open instantly in your browser and keep your work saved automatically.</p>
+        <p className="l-lede">Folio is three focused apps that open instantly in your browser and keep your work saved automatically. Start without an account; create one when you want your files online and on every device.</p>
         {!viewer && (
           <div className="l-cta">
-            <a href="/signup" className="btn big">Create a free account <ArrowRight size={16} /></a>
-            <a href="/login" className="btn ghost big">I already have one</a>
+            <a href={urlFor('write')} className="btn big">Start writing, no account needed <ArrowRight size={16} /></a>
+            <a href="/signup" className="btn ghost big">Create a free account</a>
           </div>
         )}
       </section>

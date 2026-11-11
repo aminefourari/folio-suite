@@ -10,10 +10,11 @@ import { useAutosave } from '@folio/ui/autosave.tsx'
 import { EditorBar, ShareDialog, Tool, WideTool } from '@folio/ui/chrome.tsx'
 import { Select } from '@folio/ui/Select.tsx'
 import { download, escapeHtml, pickFile, sanitize } from '@folio/ui/util.ts'
-import { createDoc, getDoc, saveDoc, shareDoc } from '../docs'
+import { storeFor, useDocs } from '../docs'
 
 export const Route = createFileRoute('/doc/$id')({
-  loader: ({ params }) => getDoc({ data: Number(params.id) }),
+  ssr: false, // guests' files live in localStorage
+  loader: ({ context, params }) => storeFor(context.viewer).get(Number(params.id)),
   component: function DocPage() {
     const doc = Route.useLoaderData()
     return <Editor key={doc.id} doc={doc} />
@@ -52,8 +53,9 @@ function Editor({ doc }: { doc: { id: number; title: string; content: string; sh
   const [zoom, setZoom] = useState(100)
   const html = useRef(doc.content)
 
+  const docs = useDocs()
   const { status, error, touch } = useAutosave(() =>
-    saveDoc({ data: { id: doc.id, title, content: html.current } }))
+    docs.save({ id: doc.id, title, content: html.current }))
 
   const changed = () => {
     html.current = page.current!.innerHTML
@@ -110,7 +112,7 @@ function Editor({ doc }: { doc: { id: number; title: string; content: string; sh
   }
 
   const openNew = async (title?: string, content?: string) =>
-    navigate({ to: '/doc/$id', params: { id: String(await createDoc({ data: { title, content } })) } })
+    navigate({ to: '/doc/$id', params: { id: String(await docs.create({ title, content })) } })
 
   // Imported files become a new document.
   const fileImport = () => pickFile('.html,.htm,.txt,.md', async (f) => {
@@ -146,7 +148,7 @@ function Editor({ doc }: { doc: { id: number; title: string; content: string; sh
 
   return (
     <div className="app">
-      <EditorBar app="write" title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}
+      <EditorBar app="write" docId={doc.id} title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}
         onShare={() => setSharing(true)} shared={!!shareId}>
         <button className="btn ghost" onClick={() => window.print()}><Printer size={16} />Print</button>
         <button className="btn accent" onClick={downloadDoc}><Download size={16} /><span className="label">Download</span></button>
@@ -245,7 +247,7 @@ function Editor({ doc }: { doc: { id: number; title: string; content: string; sh
         </div>
       </footer>
       <ShareDialog app="write" open={sharing} onClose={() => setSharing(false)} title={title} shareId={shareId}
-        onToggle={async (on) => { const id = await shareDoc({ data: { id: doc.id, on } }); setShareId(id); return id }} />
+        onToggle={async (on) => { const id = await docs.share(doc.id, on); setShareId(id); return id }} />
     </div>
   )
 }

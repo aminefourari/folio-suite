@@ -8,10 +8,11 @@ import { EditorBar, ShareDialog, Tool } from '@folio/ui/chrome.tsx'
 import { Select } from '@folio/ui/Select.tsx'
 import { LAYOUTS, SlideView, THEMES, newSlide, parseDeck, sanitizeDeck, type Deck, type Layout, type Slide, type ThemeId } from '../deck.tsx'
 import { Presenter } from '../presenter.tsx'
-import { getDoc, saveDoc, shareDoc } from '../docs'
+import { storeFor, useDocs } from '../docs'
 
 export const Route = createFileRoute('/doc/$id')({
-  loader: ({ params }) => getDoc({ data: Number(params.id) }),
+  ssr: false, // guests' files live in localStorage
+  loader: ({ context, params }) => storeFor(context.viewer).get(Number(params.id)),
   component: function DocPage() {
     const doc = Route.useLoaderData()
     // Parse and sanitize in the browser (needs DOMParser); the server renders a placeholder.
@@ -43,8 +44,9 @@ function Stage({ doc, initial }: { doc: { id: number; title: string; share_id: s
   const [dropAt, setDropAt] = useState<number | null>(null)
   const rail = useRef<HTMLDivElement>(null)
 
+  const docs = useDocs()
   const { status, error, touch } = useAutosave(() =>
-    saveDoc({ data: { id: doc.id, title, content: JSON.stringify(deck) } }))
+    docs.save({ id: doc.id, title, content: JSON.stringify(deck) }))
 
   const slide = deck.slides[cur] ?? deck.slides[0]
   const update = (next: Deck) => { setDeck(next); touch() }
@@ -108,7 +110,7 @@ function Stage({ doc, initial }: { doc: { id: number; title: string; share_id: s
 
   return (
     <div className="app">
-      <EditorBar app="stage" title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}
+      <EditorBar app="stage" docId={doc.id} title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}
         onShare={() => setSharing(true)} shared={!!shareId}>
         <button className="btn ghost" onClick={() => window.print()}><FileDown size={16} />Export PDF</button>
         <button className="btn accent" onClick={() => setPresenting(true)}><Play size={16} /><span className="label">Present</span></button>
@@ -187,7 +189,7 @@ function Stage({ doc, initial }: { doc: { id: number; title: string; share_id: s
         {deck.slides.map((s) => <div key={s.id} className="print-page"><SlideView slide={s} theme={deck.theme} placeholders={false} /></div>)}
       </div>
       <ShareDialog app="stage" open={sharing} onClose={() => setSharing(false)} title={title} shareId={shareId}
-        onToggle={async (on) => { const id = await shareDoc({ data: { id: doc.id, on } }); setShareId(id); return id }} />
+        onToggle={async (on) => { const id = await docs.share(doc.id, on); setShareId(id); return id }} />
     </div>
   )
 }

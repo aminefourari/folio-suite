@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import { notFound } from '@tanstack/react-router'
 import * as store from '@folio/ui/server.ts'
+import { localStore, type DocStore } from '@folio/ui/local.ts'
+import { useViewer } from '@folio/ui/viewer.tsx'
 
 // Thin wrappers: TanStack's compiler needs createServerFn at the top level of app code.
 const KIND = 'stage'
@@ -39,3 +41,20 @@ export const shareDoc = createServerFn({ method: 'POST' })
 export const getShared = createServerFn()
   .validator(store.parseShareId)
   .handler(async ({ data }) => (await store.getShared(KIND, data)) ?? Promise.reject(notFound()))
+
+/** Files in the signed-in account. */
+export const cloud: DocStore = {
+  local: false,
+  list: () => listDocs(),
+  get: (id) => getDoc({ data: id }),
+  create: (d) => createDoc({ data: d }),
+  save: (d) => saveDoc({ data: d }),
+  rename: (id, title) => renameDoc({ data: { id, title } }),
+  duplicate: (id) => duplicateDoc({ data: id }),
+  remove: (id) => deleteDoc({ data: id }),
+  share: (id, on) => shareDoc({ data: { id, on } }),
+}
+
+/** Signed in: the account. Guest: this browser (client only; routes using it set `ssr: false`). */
+export const storeFor = (viewer: unknown) => (viewer ? cloud : localStore(KIND))
+export const useDocs = () => storeFor(useViewer())

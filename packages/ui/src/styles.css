@@ -391,3 +391,13 @@ button { -webkit-user-select: none; user-select: none; }
 .status-page h1 { margin: 6px 0 0; font-size: 26px; font-weight: 650; letter-spacing: -0.03em; }
 .status-page p { margin: 0 0 10px; color: var(--muted); line-height: 1.5; }
 .status-page .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* Guest callouts on the files home */
+.callout { display: flex; align-items: center; gap: 14px; margin: 0 0 24px; padding: 14px 16px 14px 18px; border-radius: 18px; background: color-mix(in srgb, var(--app) 8%, var(--card)); box-shadow: var(--shadow); }
+.callout > svg { flex: none; color: var(--app); }
+.callout p { margin: 0; flex: 1; line-height: 1.45; color: var(--muted); }
+.callout p strong { color: var(--ink); font-weight: 600; }
+.callout .btn { flex: none; }
+.callout.ok { color: var(--ink); font-weight: 500; }
+.callout.ok > svg { color: var(--ok); }
+@media (max-width: 640px) { .callout { flex-wrap: wrap; } .callout .btn { width: 100%; justify-content: center; } }

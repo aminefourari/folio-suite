@@ -1,9 +1,11 @@
 import { Link, useNavigate, useRouter } from '@tanstack/react-router'
 import {
-  Check, ChevronLeft, Copy, CopyPlus, ExternalLink, FileSearch, Link2, MoreHorizontal, PencilLine, Plus, Search, Share2, Trash2,
+  Check, ChevronLeft, CloudUpload, Copy, CopyPlus, ExternalLink, FileSearch, HardDrive, Link2, MoreHorizontal, PencilLine, Plus, Search,
+  Share2, Trash2,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { Mark, appById, hubUrl, urlFor, type AppId } from './apps.tsx'
+import { Mark, appById, hubUrl, signInUrl, urlFor, type AppId } from './apps.tsx'
+import { localStore, moveToAccount, type DocStore } from './local.ts'
 import { AccountMenu, SuiteNav } from './nav.tsx'
 import { SaveBadge, type SaveStatus } from './autosave.tsx'
 import { Menu } from './Menu.tsx'
@@ -87,23 +89,30 @@ const SORTS: { value: Sort; label: string }[] = [
 ]
 
 /** Files grid used by every app's home route. */
-export function FileHome({ app: id, docs, templates, create, rename, duplicate, share, remove, preview }: {
+/** Where a guest goes to save online. Back on this app, `?save` moves this browser's files into the account
+ * (and opens file `open` when given). */
+export const saveOnlineUrl = (app: AppId, open?: number) => signInUrl(`${urlFor(app)}?save=${open ?? ''}`)
+
+/** Files grid used by every app's home route. Signed in: the account's files. Guest: this browser's files. */
+export function FileHome({ app: id, docs, templates, cloud, fill = (c) => c, preview }: {
   app: AppId
   docs: DocSummary[]
   templates: Template[]
-  create: (t?: { title: string; content: string }) => Promise<number>
-  rename: (id: number, title: string) => Promise<unknown>
-  duplicate: (id: number) => Promise<number>
-  share: (id: number, on: boolean) => Promise<string | null>
-  remove: (id: number) => Promise<unknown>
+  cloud: DocStore
+  /** Fills template placeholders at creation time. */
+  fill?: (content: string) => string
   preview: (d: DocSummary) => ReactNode
 }) {
   const app = appById(id)
   const viewer = useViewer()
+  const store = viewer ? cloud : localStore(id)
   const navigate = useNavigate()
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [notice, setNotice] = useState('')
+  const [onDevice, setOnDevice] = useState(0) // signed in, but files still in this browser
+  const moving = useRef(false)
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<Sort>('recent')
   const [renaming, setRenaming] = useState<number | null>(null)
@@ -116,21 +125,48 @@ export function FileHome({ app: id, docs, templates, create, rename, duplicate, 
   const open = (docId: number) => navigate({ to: '/doc/$id', params: { id: String(docId) } })
   const onCreate = (t?: Template) => attempt(async () => {
     setBusy(true)
-    try { await open(await create(t && { title: t.title, content: t.content })) } finally { setBusy(false) }
+    try { await open(await store.create(t ? { title: t.title, content: fill(t.content) } : {})) } finally { setBusy(false) }
   })
+  const moveHere = (openId?: number) => attempt(async () => {
+    if (moving.current) return
+    moving.current = true
+    setBusy(true)
+    try {
+      const moved = await moveToAccount(id, cloud)
+      const target = openId && moved.get(openId)
+      if (target) return void await navigate({ to: '/doc/$id', params: { id: String(target) }, replace: true })
+      await router.invalidate()
+      setNotice(`Saved ${moved.size} ${app.noun}${moved.size === 1 ? '' : 's'} from this browser to your account.`)
+    } finally {
+      moving.current = false
+      setBusy(false)
+      setOnDevice((await localStore(id).list()).length)
+    }
+  })
+
+  // Signed in with files left in this browser: offer to move them, or move them straight away after "Save online".
+  useEffect(() => {
+    if (!viewer) return
+    const save = new URLSearchParams(location.search).get('save')
+    if (save !== null) history.replaceState(history.state, '', location.pathname)
+    localStore(id).list().then((l) => {
+      setOnDevice(l.length)
+      if (l.length && save !== null) moveHere(Number(save) || undefined)
+    })
+  }, [])
   const onRemove = (d: DocSummary) => attempt(async () => {
     if (!confirm(`Delete “${d.title || `Untitled ${app.noun}`}”? This can’t be undone.`)) return
-    await remove(d.id)
+    await store.remove(d.id)
     await router.invalidate()
   })
   const onRename = (d: DocSummary, title: string) => attempt(async () => {
     setRenaming(null)
     if (title.trim() === d.title) return
-    await rename(d.id, title)
+    await store.rename(d.id, title)
     await router.invalidate()
   })
   const onDuplicate = (d: DocSummary) => attempt(async () => {
-    await duplicate(d.id)
+    await store.duplicate(d.id)
     await router.invalidate()
   })
 
@@ -152,12 +188,29 @@ export function FileHome({ app: id, docs, templates, create, rename, duplicate, 
         <Mark color={app.color} icon={app.icon} size={52} />
         <div>
           <h1 suppressHydrationWarning>{greeting()}{first ? `, ${first}` : ''}</h1>
-          <p>Your {app.noun}s in {app.name}.</p>
+          {viewer ? <p>Your {app.noun}s in {app.name}.</p> : (
+            <p>No account needed. Files you make here are saved in this browser.</p>
+          )}
         </div>
         <div className="spacer" />
         <button className="btn accent" onClick={() => onCreate()} disabled={busy}><Plus size={16} />New {app.noun}</button>
       </header>
       {err && <p className="banner" role="alert">{err}</p>}
+      {!viewer && (
+        <div className="callout">
+          <HardDrive size={20} />
+          <p><strong>Saved in this browser only.</strong> Create a free account to keep your {app.noun}s safe, share them, and open them on any device.</p>
+          <a className="btn accent" href={saveOnlineUrl(id)}><CloudUpload size={16} />Save online</a>
+        </div>
+      )}
+      {viewer && onDevice > 0 && (
+        <div className="callout">
+          <HardDrive size={20} />
+          <p><strong>{onDevice} {app.noun}{onDevice === 1 ? ' is' : 's are'} still only in this browser.</strong> Move {onDevice === 1 ? 'it' : 'them'} to your account to open {onDevice === 1 ? 'it' : 'them'} anywhere.</p>
+          <button className="btn accent" onClick={() => moveHere()} disabled={busy}><CloudUpload size={16} />Move to my account</button>
+        </div>
+      )}
+      {notice && <p className="callout ok" role="status"><Check size={18} />{notice}</p>}
 
       <section className="templates" aria-label="Start from a template">
         <h2>Start from a template</h2>
@@ -219,7 +272,9 @@ export function FileHome({ app: id, docs, templates, create, rename, duplicate, 
                       { label: 'Open', icon: <FileSearch size={16} />, onSelect: () => open(d.id) },
                       { label: 'Rename', icon: <PencilLine size={16} />, onSelect: () => setRenaming(d.id) },
                       { label: 'Duplicate', icon: <CopyPlus size={16} />, onSelect: () => onDuplicate(d) },
-                      { label: d.share_id ? 'Sharing settings' : 'Share link…', icon: <Share2 size={16} />, onSelect: () => setSharing(d.id) },
+                      viewer
+                        ? { label: d.share_id ? 'Sharing settings' : 'Share link…', icon: <Share2 size={16} />, onSelect: () => setSharing(d.id) }
+                        : { label: 'Share link…', icon: <Share2 size={16} />, href: saveOnlineUrl(id, d.id) },
                       { separator: true },
                       { label: 'Delete', icon: <Trash2 size={16} />, danger: true, onSelect: () => onRemove(d) },
                     ]} />
@@ -236,7 +291,7 @@ export function FileHome({ app: id, docs, templates, create, rename, duplicate, 
       <ShareDialog app={id} open={sharingDoc !== undefined} onClose={() => setSharing(null)} title={sharingDoc?.title ?? ''}
         shareId={sharingDoc?.share_id ?? null}
         onToggle={async (on) => {
-          const s = await share(sharing!, on)
+          const s = await store.share(sharing!, on)
           await router.invalidate()
           return s
         }} />
@@ -245,8 +300,9 @@ export function FileHome({ app: id, docs, templates, create, rename, duplicate, 
 }
 
 /** Editor top bar: back to files, editable title, save status, share, actions, account. */
-export function EditorBar({ app: id, title, onTitle, status, error, onShare, shared, children }: {
+export function EditorBar({ app: id, docId, title, onTitle, status, error, onShare, shared, children }: {
   app: AppId
+  docId: number
   title: string
   onTitle: (t: string) => void
   status: SaveStatus
@@ -256,6 +312,7 @@ export function EditorBar({ app: id, title, onTitle, status, error, onShare, sha
   children?: ReactNode
 }) {
   const app = appById(id)
+  const viewer = useViewer()
   return (
     <header className="topbar" style={{ '--app': app.color } as CSSProperties}>
       <Link to="/" className="back" aria-label={`All ${app.noun}s`} title={`All ${app.noun}s`}><ChevronLeft size={18} /></Link>
@@ -264,15 +321,20 @@ export function EditorBar({ app: id, title, onTitle, status, error, onShare, sha
       </a>
       <input className="title" aria-label={`${app.noun} title`} placeholder={`Untitled ${app.noun}`} value={title}
         maxLength={200} onChange={(e) => onTitle(e.target.value)} />
-      <SaveBadge status={status} error={error} />
+      <SaveBadge status={status} error={error} local={!viewer} />
       <div className="spacer" />
-      {onShare && (
+      {!viewer && (
+        <a className="btn soft" href={saveOnlineUrl(id, docId)} title="Create a free account to keep this file and open it anywhere">
+          <CloudUpload size={16} /><span className="label">Save online</span>
+        </a>
+      )}
+      {viewer && onShare && (
         <button className={`btn ghost share-btn${shared ? ' on' : ''}`} onClick={onShare} aria-label={shared ? 'Sharing settings' : 'Share'}>
           {shared ? <Link2 size={16} /> : <Share2 size={16} />}<span className="label">{shared ? 'Shared' : 'Share'}</span>
         </button>
       )}
       {children}
-      <AccountMenu current={id} />
+      {viewer && <AccountMenu current={id} />}
     </header>
   )
 }

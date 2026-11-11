@@ -92,3 +92,20 @@ data migration was needed.
 - Sign-in with Google or GitHub (Better Auth social providers).
 - Version history (snapshots on save, with restore).
 - A custom domain with real subdomains, which would allow one shared cookie and remove the hand-off.
+
+## Follow-up: use without an account
+
+Guests can create and edit files without signing up; an account is only needed to save online, share, and open
+files on another device.
+
+- **Guest storage:** `packages/ui/src/local.ts` keeps files in `localStorage` (per app, since each app is its own
+  origin) behind the same `DocStore` interface as the D1 store. `storeFor(viewer)` in each app's `docs.ts` picks one.
+- **Routing:** the root no longer redirects signed-out visitors. The files home and the editor use `ssr: false`,
+  because a guest's files only exist in the browser.
+- **Save online:** guests see a "Save online" button (home and editor). It signs them in through the hub and comes
+  back with `?save=<id>`; the app then moves every browser file into the account, one at a time (each is deleted
+  locally only after it saved), and reopens the file they were editing. A signed-in user who still has browser files
+  sees a "Move to my account" prompt instead of an automatic move.
+- **Limits:** sharing needs an account. Browser storage is about 5 MB per app, so large files or images may need an
+  account sooner; the app says so when the browser is full.
+

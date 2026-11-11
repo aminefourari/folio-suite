@@ -74,14 +74,15 @@ export function useAutosave(persist: () => Promise<unknown>) {
 
 const LABEL: Record<SaveStatus, string> = { saved: 'Saved', dirty: 'Edited', saving: 'Saving…', error: 'Couldn’t save' }
 
-export function SaveBadge({ status, error }: { status: SaveStatus; error?: string }) {
+export function SaveBadge({ status, error, local }: { status: SaveStatus; error?: string; local?: boolean }) {
   return (
-    <span className={`status ${status}`} role="status" title={status === 'error' ? error || 'Retrying…' : undefined}>
+    <span className={`status ${status}`} role="status"
+      title={status === 'error' ? error || 'Retrying…' : local ? 'Saved in this browser only' : undefined}>
       {status === 'saved' && <Check size={14} />}
       {status === 'dirty' && <span className="dot" />}
       {status === 'saving' && <LoaderCircle size={14} className="spin" />}
       {status === 'error' && <CircleAlert size={14} />}
-      {LABEL[status]}
+      {status === 'saved' && local ? 'Saved in browser' : LABEL[status]}
     </span>
   )
 }

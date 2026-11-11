@@ -6,7 +6,7 @@
     "dev": "node scripts/dev.mjs",
     "build": "pnpm --filter \"./apps/*\" build",
     "typecheck": "pnpm --filter \"./apps/*\" typecheck",
-    "test": "node --test apps/grid/src/formula.test.ts packages/ui/src/password.test.ts",
+    "test": "node --test apps/grid/src/formula.test.ts packages/ui/src/password.test.ts packages/ui/src/local.test.ts",
     "db:migrate:local": "cd apps/landing && wrangler d1 migrations apply folio --local --persist-to ../../.wrangler/state",
     "db:migrate:remote": "cd apps/landing && wrangler d1 migrations apply folio --remote",
     "deploy": "pnpm --filter \"./apps/*\" run deploy"

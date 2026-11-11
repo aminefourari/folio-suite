@@ -16,6 +16,7 @@ deployed as Cloudflare Workers, with files stored in Cloudflare D1 (SQLite).
 - **Write**: rich text with styles, Google Fonts, real point sizes, lists, tables, images and links. Download as `.doc`, print or save as PDF.
 - **Grid**: formulas (`SUM`, `AVERAGE`, `IF`, `ROUND` and more), range selection, copy and paste with other spreadsheets, number formats, AutoSum, undo and redo, column resizing, and CSV import and export.
 - **Stage**: layouts, six themes, speaker notes, drag-to-reorder slides, a full-screen presenter, and PDF export.
+- **No account needed to start**: guests create and edit files saved in their browser. "Save online" creates an account (or signs in) and moves those files into it.
 - **Accounts**: email and password sign-in with [Better Auth](https://better-auth.com), stored in D1. One sign-in works across all three apps. The account page lets you rename yourself, change your password, sign out everywhere and delete your account (which deletes your files).
 - **Files**: templates, search, sort, rename, duplicate, and read-only share links you can turn off at any time.
 - **Everywhere**: autosave (debounced, plus Cmd/Ctrl+S, on tab hide and on leaving), custom accessible selects and menus, light and dark mode, and phone layouts.
@@ -40,7 +41,7 @@ pnpm test                               # formula, CSV, password hashing and red
 pnpm build
 ```
 
-Open http://localhost:3000 to create an account. All apps share one local D1 under `.wrangler/state`.
+Open http://localhost:3001 to start as a guest, or http://localhost:3000 to create an account. All apps share one local D1 under `.wrangler/state`.
 
 ### Deploying
 

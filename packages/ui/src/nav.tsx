@@ -1,6 +1,6 @@
 import { LogOut, Settings } from 'lucide-react'
 import type { CSSProperties } from 'react'
-import { APPS, Mark, SUITE, hubUrl, urlFor, type AppId } from './apps.tsx'
+import { APPS, Mark, SUITE, hubUrl, signInUrl, urlFor, type AppId } from './apps.tsx'
 import { authClient } from './auth-client.ts'
 import { Menu, type MenuItem } from './Menu.tsx'
 import { initials, useViewer } from './viewer.tsx'
@@ -12,7 +12,7 @@ export async function signOutEverywhere() {
 /** Avatar button with the user, app switcher, account settings and sign out. */
 export function AccountMenu({ current }: { current?: AppId }) {
   const v = useViewer()
-  if (!v) return null
+  if (!v) return <a className="btn ghost" href={current ? `${signInUrl(urlFor(current))}` : hubUrl('login')}>Sign in</a>
   const items: MenuItem[] = [
     { header: <><strong>{v.name || 'Your account'}</strong><span>{v.email}</span></> },
     { separator: true },
