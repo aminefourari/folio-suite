@@ -1,0 +1,99 @@
+/* App accent (kept in sync with APPS in packages/ui/src/apps.tsx). */
+:root { --app: #0d9488; }
+
+.toolbar .group.first { border-left: 0; padding-left: 2px; }
+
+.formula-bar {
+  display: flex; align-items: center; gap: 8px;
+  margin: 10px 20px 0; padding: 6px;
+  background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
+}
+.name-box {
+  width: 92px; height: 30px; padding: 0 10px; flex: none;
+  border: 0; border-radius: 9px; background: var(--pill);
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 500; text-align: center;
+}
+.name-box:focus { outline: none; box-shadow: 0 0 0 3px var(--app-soft); background: var(--card); }
+.fx { color: var(--faint); font-style: italic; font-weight: 600; font-family: 'Source Serif 4', serif; padding: 0 2px; }
+.fx-input {
+  flex: 1; min-width: 0; height: 30px; padding: 0 8px; border: 0; border-radius: 9px; background: transparent;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px;
+}
+.fx-input:focus { outline: none; background: var(--pill); }
+.fx-input::placeholder { color: var(--faint); font-family: var(--ui-font); }
+
+.sheet-wrap {
+  flex: 1; overflow: auto; margin: 10px 20px 0; position: relative;
+  background: var(--card); border-radius: 18px 18px 0 0; box-shadow: var(--shadow);
+  outline: none; overscroll-behavior: contain;
+}
+.sheet-inner { position: relative; }
+.sheet {
+  border-collapse: separate; border-spacing: 0; table-layout: fixed; width: 100%;
+  font-family: 'Inter', sans-serif; font-size: 13px; font-variant-numeric: tabular-nums;
+  -webkit-user-select: none; user-select: none;
+}
+.sheet th, .sheet td {
+  height: 28px; padding: 0 8px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sheet thead th {
+  position: sticky; top: 0; z-index: 3;
+  background: color-mix(in srgb, var(--card) 88%, var(--pill)); backdrop-filter: blur(8px);
+  color: var(--muted); font-family: var(--ui-font); font-size: 12px; font-weight: 600; text-align: center;
+  cursor: s-resize;
+}
+.sheet tbody th {
+  position: sticky; left: 0; z-index: 2;
+  background: color-mix(in srgb, var(--card) 88%, var(--pill));
+  color: var(--muted); font-family: var(--ui-font); font-size: 12px; font-weight: 600; text-align: center;
+  cursor: e-resize;
+}
+.sheet thead th.corner { left: 0; z-index: 4; cursor: default; }
+.sheet th.hl { color: var(--app); background: color-mix(in srgb, var(--app) 10%, var(--card)); }
+.sheet td { cursor: cell; color: var(--ink); }
+.sheet td.in { background: color-mix(in srgb, var(--app) 9%, transparent); }
+.sheet td.num { text-align: right; }
+.sheet td.bool { text-align: center; }
+.sheet td.err { color: var(--bad); font-weight: 600; text-align: center; }
+.sheet td.b { font-weight: 650; }
+.sheet td.i { font-style: italic; }
+.sheet td.a-left { text-align: left; }
+.sheet td.a-center { text-align: center; }
+.sheet td.a-right { text-align: right; }
+.resize { position: absolute; top: 0; right: -4px; width: 8px; height: 100%; cursor: col-resize; z-index: 4; }
+.resize:hover { background: color-mix(in srgb, var(--app) 40%, transparent); }
+
+.sel {
+  position: absolute; pointer-events: none; z-index: 1;
+  border: 2px solid var(--app); border-radius: 3px;
+  transition: left 0.08s var(--ease), top 0.08s var(--ease), width 0.08s var(--ease), height 0.08s var(--ease);
+}
+.cell-input {
+  position: absolute; z-index: 5; padding: 0 7px; border: 2px solid var(--app); border-radius: 3px;
+  background: var(--card); color: var(--ink); outline: none; box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.25);
+  font-family: 'Inter', sans-serif; font-size: 13px; field-sizing: content; max-width: 480px;
+}
+
+.statusbar b { color: var(--ink); font-weight: 600; margin-left: 4px; }
+
+.mini-sheet {
+  position: absolute; inset: 14px 14px auto; width: calc(100% - 28px);
+  border-collapse: separate; border-spacing: 0; table-layout: fixed;
+  background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 1px rgba(24, 24, 27, 0.06);
+  font-family: 'Inter', sans-serif; font-size: 9.5px; color: #27272a;
+}
+.mini-sheet th, .mini-sheet td { height: 20px; padding: 0 5px; border-right: 1px solid #f0f0f2; border-bottom: 1px solid #f0f0f2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-sheet th { background: #fafafa; color: #a1a1aa; font-weight: 600; width: auto; }
+.mini-sheet tr > th:first-child { width: 18px; }
+.mini-sheet td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .formula-bar, .sheet-wrap { margin-left: 12px; margin-right: 12px; }
+  .name-box { width: 70px; }
+  .mini-sheet { inset: 8px 8px auto; width: calc(100% - 16px); }
+}
+@media print {
+  .formula-bar, .sel { display: none; }
+  .sheet-wrap { overflow: visible; box-shadow: none; margin: 0; }
+}

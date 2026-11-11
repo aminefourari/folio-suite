@@ -1,0 +1,11 @@
+node_modules
+dist
+.output
+.tanstack
+.nitro
+.wrangler
+.dev.vars
+.playwright-mcp
+skills-lock.json
+.agents/
+.claude/skills/
