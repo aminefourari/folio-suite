@@ -1,6 +1,7 @@
 import { Check, ChevronDown } from 'lucide-react'
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useAnchoredPopover, type OpenMode } from './popover.ts'
 
 export type Option<T extends string> = { value: T; label: string; style?: CSSProperties; hint?: ReactNode }
 
@@ -18,11 +19,8 @@ export function Select<T extends string>({ label, value, options, onChange, widt
   placeholder?: string
 }) {
   const id = useId()
-  const trigger = useRef<HTMLButtonElement>(null)
-  const list = useRef<HTMLUListElement>(null)
-  const [open, setOpen] = useState<false | 'mouse' | 'keys'>(false)
+  const [open, setOpen] = useState<OpenMode>(false)
   const [active, setActive] = useState(0)
-  const [pos, setPos] = useState<CSSProperties>({})
   const typed = useRef({ text: '', at: 0 })
   const current = options.find((o) => o.value === value)
 
@@ -34,45 +32,11 @@ export function Select<T extends string>({ label, value, options, onChange, widt
     setOpen(false)
     if (refocus) trigger.current?.focus()
   }
+  const { trigger, popover: list, style } = useAnchoredPopover<HTMLUListElement>(open, () => close())
   const pick = (i: number) => {
     close(open === 'keys')
     onChange(options[i].value)
   }
-
-  // Position under the trigger, flipping up and clamping to the viewport.
-  useLayoutEffect(() => {
-    if (!open || !trigger.current || !list.current) return
-    const r = trigger.current.getBoundingClientRect()
-    const h = list.current.offsetHeight
-    const w = Math.max(r.width, list.current.offsetWidth)
-    const below = r.bottom + 6 + h <= innerHeight - 8 || r.top < h + 14
-    setPos({
-      left: Math.max(8, Math.min(r.left, innerWidth - w - 8)),
-      top: below ? r.bottom + 6 : r.top - h - 6,
-      minWidth: r.width,
-      maxHeight: below ? innerHeight - r.bottom - 14 : r.top - 14,
-    })
-    if (open === 'keys') list.current.focus()
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const away = (e: PointerEvent) => {
-      if (!list.current?.contains(e.target as Node) && !trigger.current?.contains(e.target as Node)) close()
-    }
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && open === 'mouse') close() }
-    const off = (e: Event) => { if (!list.current?.contains(e.target as Node)) close() }
-    document.addEventListener('pointerdown', away, true)
-    document.addEventListener('keydown', esc)
-    window.addEventListener('resize', off)
-    window.addEventListener('scroll', off, true)
-    return () => {
-      document.removeEventListener('pointerdown', away, true)
-      document.removeEventListener('keydown', esc)
-      window.removeEventListener('resize', off)
-      window.removeEventListener('scroll', off, true)
-    }
-  }, [open])
 
   useEffect(() => {
     if (open) list.current?.querySelector(`[data-i="${active}"]`)?.scrollIntoView({ block: 'nearest' })
@@ -107,7 +71,7 @@ export function Select<T extends string>({ label, value, options, onChange, widt
       </button>
       {open && createPortal(
         <ul ref={list} id={id} role="listbox" aria-label={label} tabIndex={-1} className="select-menu"
-          style={{ ...pos, opacity: pos.top === undefined ? 0 : undefined }}
+          style={style}
           aria-activedescendant={`${id}-${active}`} onKeyDown={onListKey}>
           {options.map((o, i) => (
             <li key={o.value} id={`${id}-${i}`} data-i={i} role="option" aria-selected={o.value === value}

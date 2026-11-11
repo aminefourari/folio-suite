@@ -1,18 +1,21 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ArrowUpRight, Cloud, Keyboard, Lock, MoonStar } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Cloud, Link2, Lock, MoonStar } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { APPS, Mark, SUITE, urlFor } from '@folio/ui/apps.tsx'
+import { AccountMenu } from '@folio/ui/nav.tsx'
+import { useViewer } from '@folio/ui/viewer.tsx'
 
 export const Route = createFileRoute('/')({ component: Landing })
 
 const FEATURES = [
   { icon: Cloud, title: 'Saves as you type', text: 'Every change is stored within a second. No save button to forget.' },
-  { icon: Lock, title: 'Private by default', text: 'Your files belong to this browser. No sign-up, no tracking.' },
-  { icon: Keyboard, title: 'Keyboard friendly', text: 'Familiar shortcuts for formatting, navigation and saving.' },
+  { icon: Lock, title: 'Private by default', text: 'Only you can open your files. One account works across all three apps.' },
+  { icon: Link2, title: 'Share a read-only link', text: 'Send a link anyone can view, and switch it off whenever you like.' },
   { icon: MoonStar, title: 'Light and dark', text: 'Follows your system appearance, down to the toolbars.' },
 ]
 
 function Landing() {
+  const viewer = useViewer()
   return (
     <div className="landing">
       <header className="l-nav">
@@ -20,12 +23,24 @@ function Landing() {
         <nav aria-label="Apps">
           {APPS.map((a) => <a key={a.id} href={urlFor(a.id)}>{a.short}</a>)}
         </nav>
+        <div className="l-auth">
+          {viewer ? <AccountMenu /> : (<>
+            <a href="/login" className="btn ghost">Sign in</a>
+            <a href="/signup" className="btn">Get started</a>
+          </>)}
+        </div>
       </header>
 
       <section className="l-hero">
         <p className="l-eyebrow">A calm little office suite</p>
         <h1>Write, calculate and present, <span>without the clutter.</span></h1>
-        <p className="l-lede">Folio is three focused apps that open instantly in your browser and keep your work saved automatically.</p>
+        <p className="l-lede">Folio is three focused apps that open instantly in your browser and keep your work saved automatically. Start without an account; create one when you want your files online and on every device.</p>
+        {!viewer && (
+          <div className="l-cta">
+            <a href={urlFor('write')} className="btn big">Start writing, no account needed <ArrowRight size={16} /></a>
+            <a href="/signup" className="btn ghost big">Create a free account</a>
+          </div>
+        )}
       </section>
 
       <section className="l-apps" aria-label="Folio apps">

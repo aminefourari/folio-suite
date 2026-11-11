@@ -1,17 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import {
-  AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Bold, ChevronLeft, ChevronRight, Copy, FileDown, Italic,
-  LayoutTemplate, List, ListOrdered, Palette, Play, Plus, Trash2, Underline, X,
+  AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Bold, Copy, FileDown, Italic, LayoutTemplate, List, ListOrdered, Palette, Play, Plus, Trash2, Underline,
 } from 'lucide-react'
 import { useAutosave } from '@folio/ui/autosave.tsx'
-import { EditorBar, Tool } from '@folio/ui/chrome.tsx'
+import { EditorBar, ShareDialog, Tool } from '@folio/ui/chrome.tsx'
 import { Select } from '@folio/ui/Select.tsx'
 import { LAYOUTS, SlideView, THEMES, newSlide, parseDeck, sanitizeDeck, type Deck, type Layout, type Slide, type ThemeId } from '../deck.tsx'
-import { getDoc, saveDoc } from '../docs'
+import { Presenter } from '../presenter.tsx'
+import { storeFor, useDocs } from '../docs'
 
 export const Route = createFileRoute('/doc/$id')({
-  loader: ({ params }) => getDoc({ data: Number(params.id) }),
+  ssr: false, // guests' files live in localStorage
+  loader: ({ context, params }) => storeFor(context.viewer).get(Number(params.id)),
   component: function DocPage() {
     const doc = Route.useLoaderData()
     // Parse and sanitize in the browser (needs DOMParser); the server renders a placeholder.
@@ -31,8 +32,10 @@ const keepFocus = (e: React.MouseEvent) => e.preventDefault()
 const exec = (cmd: string) => document.execCommand(cmd, false)
 const TEXT_CMDS = ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList', 'justifyLeft', 'justifyCenter', 'justifyRight']
 
-function Stage({ doc, initial }: { doc: { id: number; title: string }; initial: Deck }) {
+function Stage({ doc, initial }: { doc: { id: number; title: string; share_id: string | null }; initial: Deck }) {
   const [title, setTitle] = useState(doc.title)
+  const [shareId, setShareId] = useState(doc.share_id)
+  const [sharing, setSharing] = useState(false)
   const [deck, setDeck] = useState(initial)
   const [cur, setCur] = useState(0)
   const [presenting, setPresenting] = useState(false)
@@ -41,8 +44,9 @@ function Stage({ doc, initial }: { doc: { id: number; title: string }; initial: 
   const [dropAt, setDropAt] = useState<number | null>(null)
   const rail = useRef<HTMLDivElement>(null)
 
+  const docs = useDocs()
   const { status, error, touch } = useAutosave(() =>
-    saveDoc({ data: { id: doc.id, title, content: JSON.stringify(deck) } }))
+    docs.save({ id: doc.id, title, content: JSON.stringify(deck) }))
 
   const slide = deck.slides[cur] ?? deck.slides[0]
   const update = (next: Deck) => { setDeck(next); touch() }
@@ -106,7 +110,8 @@ function Stage({ doc, initial }: { doc: { id: number; title: string }; initial: 
 
   return (
     <div className="app">
-      <EditorBar app="stage" title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}>
+      <EditorBar app="stage" docId={doc.id} title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}
+        onShare={() => setSharing(true)} shared={!!shareId}>
         <button className="btn ghost" onClick={() => window.print()}><FileDown size={16} />Export PDF</button>
         <button className="btn accent" onClick={() => setPresenting(true)}><Play size={16} /><span className="label">Present</span></button>
       </EditorBar>
@@ -183,51 +188,8 @@ function Stage({ doc, initial }: { doc: { id: number; title: string }; initial: 
       <div className="print-deck" aria-hidden>
         {deck.slides.map((s) => <div key={s.id} className="print-page"><SlideView slide={s} theme={deck.theme} placeholders={false} /></div>)}
       </div>
-    </div>
-  )
-}
-
-function Presenter({ deck, start, onExit }: { deck: Deck; start: number; onExit: (i: number) => void }) {
-  const root = useRef<HTMLDivElement>(null)
-  const [i, setI] = useState(start)
-  const iRef = useRef(i)
-  iRef.current = i
-  const last = deck.slides.length - 1
-  const next = () => setI((n) => Math.min(last, n + 1))
-  const prev = () => setI((n) => Math.max(0, n - 1))
-
-  useEffect(() => {
-    const el = root.current!
-    el.focus()
-    el.requestFullscreen?.().catch(() => {})
-    const onFs = () => { if (!document.fullscreenElement) onExit(iRef.current) }
-    document.addEventListener('fullscreenchange', onFs)
-    return () => {
-      document.removeEventListener('fullscreenchange', onFs)
-      if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
-    }
-  }, [])
-
-  const onKey = (e: React.KeyboardEvent) => {
-    if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); next() }
-    else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); prev() }
-    else if (e.key === 'Home') setI(0)
-    else if (e.key === 'End') setI(last)
-    else if (e.key === 'Escape') onExit(i)
-  }
-
-  return (
-    <div ref={root} className="presenter" tabIndex={-1} role="dialog" aria-label="Presentation" onKeyDown={onKey}>
-      <div className="presenter-slide" onClick={next}>
-        <SlideView key={deck.slides[i].id} slide={deck.slides[i]} theme={deck.theme} placeholders={false} />
-      </div>
-      <div className="presenter-hud">
-        <button onClick={prev} disabled={i === 0} aria-label="Previous slide"><ChevronLeft size={18} /></button>
-        <span>{i + 1} / {deck.slides.length}</span>
-        <button onClick={next} disabled={i === last} aria-label="Next slide"><ChevronRight size={18} /></button>
-        <button onClick={() => onExit(i)} aria-label="Exit presentation"><X size={18} /></button>
-      </div>
-      <div className="presenter-progress" style={{ width: `${((i + 1) / deck.slides.length) * 100}%` }} />
+      <ShareDialog app="stage" open={sharing} onClose={() => setSharing(false)} title={title} shareId={shareId}
+        onToggle={async (on) => { const id = await docs.share(doc.id, on); setShareId(id); return id }} />
     </div>
   )
 }

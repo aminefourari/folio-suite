@@ -110,3 +110,11 @@
   .print-page { width: 13.333in; height: 7.5in; break-after: page; }
   .print-page .slide { height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Shared (read-only) view */
+.shared-stage { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 12px 20px 24px; }
+.shared-stage .stage-frame { width: min(100%, 1100px); }
+.shared-nav { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.shared-strip { display: flex; gap: 10px; max-width: 100%; overflow-x: auto; padding: 4px; }
+.shared-strip .thumb-slide { flex: none; width: 150px; padding: 0; border: 0; cursor: pointer; background: none; }
+.shared-strip .thumb-slide.current { box-shadow: 0 0 0 2px var(--app); }

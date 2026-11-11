@@ -4,7 +4,7 @@ import {
   AlignCenter, AlignLeft, AlignRight, Bold, Download, Eraser, FunctionSquare, Italic, Redo2, Sigma, Undo2, Upload,
 } from 'lucide-react'
 import { useAutosave } from '@folio/ui/autosave.tsx'
-import { EditorBar, Tool } from '@folio/ui/chrome.tsx'
+import { EditorBar, ShareDialog, Tool } from '@folio/ui/chrome.tsx'
 import { Select } from '@folio/ui/Select.tsx'
 import { download, pickFile } from '@folio/ui/util.ts'
 import { Err, FUNCTION_NAMES, colName, parseRef, ref } from '../formula.ts'
@@ -12,10 +12,11 @@ import {
   COLS, ROWS, display, evaluator, parse, parseCsv, serialize, toCsv,
   type Align, type Cell, type Cells, type Fmt,
 } from '../sheet.ts'
-import { createDoc, getDoc, saveDoc } from '../docs'
+import { storeFor, useDocs } from '../docs'
 
 export const Route = createFileRoute('/doc/$id')({
-  loader: ({ params }) => getDoc({ data: Number(params.id) }),
+  ssr: false, // guests' files live in localStorage
+  loader: ({ context, params }) => storeFor(context.viewer).get(Number(params.id)),
   component: function DocPage() {
     const doc = Route.useLoaderData()
     return <Sheet key={doc.id} doc={doc} />
@@ -35,10 +36,12 @@ const FN_OPTIONS = FUNCTION_NAMES.map((f) => ({ value: f, label: f }))
 const clamp = ([c, r]: Pos): Pos => [Math.max(0, Math.min(COLS - 1, c)), Math.max(0, Math.min(ROWS - 1, r))]
 const MIME = 'application/x-folio-grid'
 
-function Sheet({ doc }: { doc: { id: number; title: string; content: string } }) {
+function Sheet({ doc }: { doc: { id: number; title: string; content: string; share_id: string | null } }) {
   const navigate = useNavigate()
   const initial = useMemo(() => parse(doc.content), [doc.content])
   const [title, setTitle] = useState(doc.title)
+  const [shareId, setShareId] = useState(doc.share_id)
+  const [sharing, setSharing] = useState(false)
   const [cells, setCells] = useState<Cells>(initial.cells)
   const [widths, setWidths] = useState(initial.widths)
   const [past, setPast] = useState<Cells[]>([])
@@ -51,8 +54,9 @@ function Sheet({ doc }: { doc: { id: number; title: string; content: string } })
   const input = useRef<HTMLInputElement>(null)
   const dragging = useRef(false)
 
+  const docs = useDocs()
   const { status, error, touch } = useAutosave(() =>
-    saveDoc({ data: { id: doc.id, title, content: serialize({ cells, widths }) } }))
+    docs.save({ id: doc.id, title, content: serialize({ cells, widths }) }))
 
   const get = useMemo(() => evaluator(cells), [cells])
   const w = (c: number) => widths[c] ?? DEFAULT_W
@@ -270,7 +274,7 @@ function Sheet({ doc }: { doc: { id: number; title: string; content: string } })
   const importCsv = () => pickFile('.csv,text/csv', async (f) => {
     const imported: Cells = {}
     parseCsv(await f.text()).slice(0, ROWS).forEach((row, r) => row.slice(0, COLS).forEach((v, c) => { if (v) imported[ref(c, r)] = { v } }))
-    const id = await createDoc({ data: { title: f.name.replace(/\.\w+$/, ''), content: serialize({ cells: imported, widths: {} }) } })
+    const id = await docs.create({ title: f.name.replace(/\.\w+$/, ''), content: serialize({ cells: imported, widths: {} }) })
     navigate({ to: '/doc/$id', params: { id: String(id) } })
   })
 
@@ -305,7 +309,8 @@ function Sheet({ doc }: { doc: { id: number; title: string; content: string } })
 
   return (
     <div className="app">
-      <EditorBar app="grid" title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}>
+      <EditorBar app="grid" docId={doc.id} title={title} onTitle={(t) => { setTitle(t); touch() }} status={status} error={error}
+        onShare={() => setSharing(true)} shared={!!shareId}>
         <button className="btn ghost" onClick={importCsv}><Upload size={16} />Import CSV</button>
         <button className="btn accent" onClick={exportCsv}><Download size={16} /><span className="label">Download CSV</span></button>
       </EditorBar>
@@ -434,6 +439,8 @@ function Sheet({ doc }: { doc: { id: number; title: string; content: string } })
           <span>Count <b>{totals.count}</b></span>
         </>)}
       </footer>
+      <ShareDialog app="grid" open={sharing} onClose={() => setSharing(false)} title={title} shareId={shareId}
+        onToggle={async (on) => { const id = await docs.share(doc.id, on); setShareId(id); return id }} />
     </div>
   )
 }

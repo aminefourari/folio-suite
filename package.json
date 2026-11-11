@@ -3,16 +3,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev": "node scripts/dev.mjs",
     "build": "pnpm --filter \"./apps/*\" build",
     "typecheck": "pnpm --filter \"./apps/*\" typecheck",
-    "test": "node --test apps/grid/src/formula.test.ts",
+    "test": "node --test apps/grid/src/formula.test.ts packages/ui/src/password.test.ts packages/ui/src/local.test.ts",
+    "db:migrate:local": "cd apps/landing && wrangler d1 migrations apply folio --local --persist-to ../../.wrangler/state",
+    "db:migrate:remote": "cd apps/landing && wrangler d1 migrations apply folio --remote",
     "deploy": "pnpm --filter \"./apps/*\" run deploy"
   },
   "dependencies": {
     "@folio/ui": "workspace:*",
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-start": "^1.169.5",
+    "better-auth": "1.7.20",
     "lucide-react": "^1.71.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

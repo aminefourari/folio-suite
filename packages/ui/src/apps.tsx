@@ -1,5 +1,6 @@
 import { Layers, PenLine, Presentation, Sheet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { urlFor } from './urls.ts'
 
 export type AppId = 'write' | 'grid' | 'stage'
 export type App = {
@@ -26,13 +27,7 @@ export const APPS: App[] = [
 
 export const appById = (id: AppId) => APPS.find((a) => a.id === id)!
 
-// Each app is its own Worker on workers.dev; locally each runs on its own port.
-const WORKERS_DEV = 'aminethewiz18.workers.dev'
-export const urlFor = (id: AppId | 'landing') => {
-  const port = id === 'landing' ? SUITE.port : appById(id).port
-  const worker = id === 'landing' ? SUITE.worker : `folio-${id}`
-  return import.meta.env.DEV ? `http://localhost:${port}/` : `https://${worker}.${WORKERS_DEV}/`
-}
+export { ORIGINS, hubUrl, safeAppUrl, safePath, signInUrl, urlFor } from './urls.ts'
 
 // Document fonts, all served by Google Fonts.
 export const DOC_FONTS = ['Inter', 'Instrument Sans', 'Lora', 'Merriweather', 'Source Serif 4', 'Fraunces', 'Space Grotesk', 'JetBrains Mono']

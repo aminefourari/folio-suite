@@ -97,3 +97,7 @@
   .formula-bar, .sel { display: none; }
   .sheet-wrap { overflow: visible; box-shadow: none; margin: 0; }
 }
+
+.sheet-wrap.readonly { margin-top: 10px; }
+.sheet-wrap.readonly .sheet td { cursor: default; }
+.sheet-wrap.readonly .sheet th { cursor: default; }

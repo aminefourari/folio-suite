@@ -1,19 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { FileHome } from '@folio/ui/chrome.tsx'
-import { SlideView, previewDeck } from '../deck.tsx'
-import { createDoc, deleteDoc, listDocs } from '../docs'
+import { SlideThumb, TEMPLATES } from '../templates.tsx'
+import { cloud, storeFor } from '../docs'
 
 export const Route = createFileRoute('/')({
-  loader: () => listDocs(),
+  ssr: false, // guests' files live in localStorage
+  loader: ({ context }) => storeFor(context.viewer).list(),
   component: function Home() {
     return (
-      <FileHome app="stage" docs={Route.useLoaderData()}
-        create={() => createDoc({ data: {} })}
-        remove={(id) => deleteDoc({ data: id })}
-        preview={(d) => {
-          const { theme, slide } = previewDeck(d.preview)
-          return <div className="slide-thumb"><SlideView slide={slide} theme={theme} placeholders={false} /></div>
-        }} />
+      <FileHome app="stage" docs={Route.useLoaderData()} cloud={cloud} templates={TEMPLATES}
+        preview={(d) => <SlideThumb prefix={d.preview} />} />
     )
   },
 })
