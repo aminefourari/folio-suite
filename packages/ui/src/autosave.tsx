@@ -34,7 +34,7 @@ export function useAutosave(persist: () => Promise<unknown>) {
         setError(msg)
         setStatus('error')
         // Validation errors won't fix themselves; only retry network/server hiccups.
-        if (!/too large|no longer exists/i.test(msg)) setTimeout(save, RETRY)
+        if (!/too large|no longer exists|sign in/i.test(msg)) setTimeout(save, RETRY)
       }
     })
     return queue.current

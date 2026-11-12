@@ -52,3 +52,16 @@ export async function authHandoff({ request }: Ctx) {
   target.searchParams.set('next', to.pathname + to.search)
   return go(target.href)
 }
+
+/**
+ * /auth/signout : signs this browser out of one app, then sends it to `next` (the next app's /auth/signout,
+ * ending at the hub's /login). Each app is its own origin with its own cookies, so this chain is how one
+ * sign-out clears every app's session and cookie-cache cookies at once. `next` is a constant set by each
+ * app's route, never read from the request.
+ * It is a GET, so another site can link here and sign the visitor out. Accepted: a nuisance, nothing is exposed.
+ */
+export const authSignOut = (next: string) => async ({ request }: Ctx) => {
+  // Deletes the session row when the cookie has one, and always expires the session and cache cookies.
+  const { headers } = await getAuth().api.signOut({ headers: request.headers, returnHeaders: true })
+  return go(next, headers)
+}

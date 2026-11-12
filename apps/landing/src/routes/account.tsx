@@ -3,7 +3,8 @@ import { KeyRound, LogOut, ShieldAlert, UserRound } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { hubUrl } from '@folio/ui/apps.tsx'
 import { authClient, must } from '@folio/ui/auth-client.ts'
-import { SuiteNav } from '@folio/ui/nav.tsx'
+import { SuiteNav, signOutEverywhere } from '@folio/ui/nav.tsx'
+import { forgetViewer } from '@folio/ui/session.ts'
 import { useViewer } from '@folio/ui/viewer.tsx'
 import { Field } from '../auth-shell.tsx'
 
@@ -60,7 +61,7 @@ function Account() {
           <form method="post" className="auth-form" onSubmit={(e) => {
             e.preventDefault()
             const name = String(new FormData(e.currentTarget).get('name')).trim()
-            saveProfile(async () => { await must(authClient().updateUser({ name })); await router.invalidate(); return 'Profile updated' })
+            saveProfile(async () => { await must(authClient().updateUser({ name })); forgetViewer(); await router.invalidate(); return 'Profile updated' })
           }}>
             <Field label="Name" name="name" defaultValue={viewer.name} required maxLength={80} autoComplete="name" />
             <Field label="Email" value={viewer.email} readOnly disabled hint="Email changes aren’t available yet." />
@@ -98,7 +99,7 @@ function Account() {
           <Msg s={sessions} />
           <button className="btn soft" disabled={sessions.busy} onClick={() => endSessions(async () => {
             await must(authClient().revokeSessions())
-            location.assign('/login')
+            signOutEverywhere() // clears the other apps' cookies in this browser too
           })}>Sign out everywhere</button>
         </Panel>
 
@@ -109,7 +110,7 @@ function Account() {
             if (!confirm('Delete your account and all your files? This can’t be undone.')) return
             deleteAccount(async () => {
               await must(authClient().deleteUser({ password: pw }))
-              location.assign('/')
+              signOutEverywhere()
             })
           }}>
             <Field label="Confirm with your password" name="password" type="password" autoComplete="current-password" required />

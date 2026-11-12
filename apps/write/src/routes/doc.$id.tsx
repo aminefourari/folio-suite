@@ -7,13 +7,14 @@ import {
 } from 'lucide-react'
 import { DOC_FONTS } from '@folio/ui/apps.tsx'
 import { useAutosave } from '@folio/ui/autosave.tsx'
-import { EditorBar, ShareDialog, Tool, WideTool } from '@folio/ui/chrome.tsx'
+import { EditorBar, EditorSkeleton, ShareDialog, Tool, WideTool } from '@folio/ui/chrome.tsx'
 import { Select } from '@folio/ui/Select.tsx'
 import { download, escapeHtml, pickFile, sanitize } from '@folio/ui/util.ts'
 import { storeFor, useDocs } from '../docs'
 
 export const Route = createFileRoute('/doc/$id')({
   ssr: false, // guests' files live in localStorage
+  pendingComponent: () => <EditorSkeleton app="write" />, // also the server HTML
   loader: ({ context, params }) => storeFor(context.viewer).get(Number(params.id)),
   component: function DocPage() {
     const doc = Route.useLoaderData()

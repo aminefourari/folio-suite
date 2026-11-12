@@ -29,5 +29,8 @@ export function safeAppUrl(to: string | null | undefined): URL | null {
   }
 }
 
+/** Paths that work without signing in. */
+export const isPublicPath = (p: string) => /^\/(s|auth|api)\//.test(p)
+
 /** Same-site path: must start with one slash (no scheme, no protocol-relative //host or /\\host). */
 export const safePath = (p: string | null | undefined) => (p && /^\/(?![/\\])/.test(p) ? p : '/')

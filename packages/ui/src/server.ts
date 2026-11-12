@@ -57,7 +57,7 @@ export async function get(kind: AppId, id: number) {
 }
 
 export async function create(kind: AppId, { title, content }: { title: string; content: string }) {
-  const who = await requireUserId()
+  const who = await requireUserId('fresh')
   const count = await db().prepare('SELECT count(*) AS n FROM documents WHERE owner = ? AND kind = ?').bind(who, kind).first<number>('n')
   if ((count ?? 0) >= MAX_DOCS) throw new Error(`You can keep up to ${MAX_DOCS} files here. Delete some to make room.`)
   return (await db().prepare('INSERT INTO documents (owner, kind, title, content) VALUES (?, ?, ?, ?) RETURNING id')
@@ -67,13 +67,13 @@ export async function create(kind: AppId, { title, content }: { title: string; c
 export async function save(kind: AppId, { id, title, content }: { id: number; title: string; content: string }) {
   const { meta } = await db()
     .prepare("UPDATE documents SET title = ?, content = ?, updated_at = datetime('now') WHERE id = ? AND owner = ? AND kind = ?")
-    .bind(title, content, id, await requireUserId(), kind).run()
+    .bind(title, content, id, await requireUserId('fresh'), kind).run()
   if (!meta.changes) throw new Error('This file no longer exists')
 }
 
 export async function rename(kind: AppId, { id, title }: { id: number; title: string }) {
   await db().prepare("UPDATE documents SET title = ?, updated_at = datetime('now') WHERE id = ? AND owner = ? AND kind = ?")
-    .bind(title, id, await requireUserId(), kind).run()
+    .bind(title, id, await requireUserId('fresh'), kind).run()
 }
 
 export async function duplicate(kind: AppId, id: number) {
@@ -83,7 +83,7 @@ export async function duplicate(kind: AppId, id: number) {
 }
 
 export async function remove(kind: AppId, id: number) {
-  await db().prepare('DELETE FROM documents WHERE id = ? AND owner = ? AND kind = ?').bind(id, await requireUserId(), kind).run()
+  await db().prepare('DELETE FROM documents WHERE id = ? AND owner = ? AND kind = ?').bind(id, await requireUserId('fresh'), kind).run()
 }
 
 // 128 random bits, URL-safe base64 (22 chars).
@@ -96,7 +96,7 @@ export async function setShare(kind: AppId, { id, on }: { id: number; on: boolea
   // Keep an existing link stable when it is already on.
   const row = await db()
     .prepare('UPDATE documents SET share_id = CASE WHEN ? THEN coalesce(share_id, ?) ELSE NULL END WHERE id = ? AND owner = ? AND kind = ? RETURNING share_id')
-    .bind(on ? 1 : 0, shareId, id, await requireUserId(), kind).first<{ share_id: string | null }>()
+    .bind(on ? 1 : 0, shareId, id, await requireUserId('fresh'), kind).first<{ share_id: string | null }>()
   if (!row) throw new Error('This file no longer exists')
   return row.share_id
 }

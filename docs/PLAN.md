@@ -27,7 +27,11 @@ App: verify token ─▶ Better Auth sets the session cookie for this host ─�
 ```
 
 All apps share the same D1 tables and the same `BETTER_AUTH_SECRET`, so the hand-off reuses the one session row.
-Signing out anywhere deletes that row, which signs the user out of every app.
+Signing out goes through every app's `/auth/signout` in turn (write → grid → stage → landing → `/login`), each
+deleting the row if it still exists and expiring that app's session and cache cookies, so this browser is signed out
+of every app at once. Sessions use Better Auth's 5-minute cookie cache, so on another device (sign out everywhere,
+or a password change that signs out other devices) writes stop immediately (they recheck the row) and reads stop
+within 5 minutes.
 
 ## Architecture
 

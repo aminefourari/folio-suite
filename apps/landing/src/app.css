@@ -96,7 +96,7 @@
 /* Sign in / sign up */
 .auth-page { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 32px 16px; }
 .auth-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
-.auth-card { width: min(420px, 100%); padding: 32px; border-radius: 28px; background: var(--card); box-shadow: var(--shadow), 0 24px 60px -24px rgba(0, 0, 0, 0.18); animation: arrive 0.6s var(--ease) both; }
+.auth-card { width: min(420px, 100%); padding: 32px; border-radius: 28px; background: var(--card); box-shadow: var(--shadow), 0 24px 60px -24px rgba(0, 0, 0, 0.18); animation: arrive 0.3s var(--ease) both; }
 .auth-card h1 { margin: 0; font-size: 24px; font-weight: 650; letter-spacing: -0.03em; }
 .auth-sub { margin: 6px 0 22px; color: var(--muted); line-height: 1.45; }
 .auth-form { display: flex; flex-direction: column; gap: 14px; }

@@ -4,9 +4,6 @@
 .toolbar .group.first { border-left: 0; padding-left: 2px; gap: 6px; }
 .swatch { display: inline-block; width: 22px; height: 14px; border-radius: 4px; border: 2px solid; vertical-align: middle; }
 
-.stage-loading { flex: 1; margin: 80px auto; width: min(880px, 80vw); aspect-ratio: 16 / 9; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); animation: breathe 1.4s ease-in-out infinite alternate; }
-@keyframes breathe { to { opacity: 0.55; } }
-
 .stage-body { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 12px 20px 0; }
 
 /* Slide rail */

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AuthSignoutRouteImport } from './routes/auth/signout'
 import { Route as DocIdRouteImport } from './routes/doc.$id'
 import { Route as SShareIdRouteImport } from './routes/s/$shareId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignoutRoute = AuthSignoutRouteImport.update({
+  id: '/auth/signout',
+  path: '/auth/signout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocIdRoute = DocIdRouteImport.update({
@@ -44,6 +50,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/signout': typeof AuthSignoutRoute
   '/doc/$id': typeof DocIdRoute
   '/s/$shareId': typeof SShareIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/signout': typeof AuthSignoutRoute
   '/doc/$id': typeof DocIdRoute
   '/s/$shareId': typeof SShareIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -59,19 +67,33 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/auth/signout': typeof AuthSignoutRoute
   '/doc/$id': typeof DocIdRoute
   '/s/$shareId': typeof SShareIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth/callback' | '/doc/$id' | '/s/$shareId' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/auth/callback'
+    | '/auth/signout'
+    | '/doc/$id'
+    | '/s/$shareId'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth/callback' | '/doc/$id' | '/s/$shareId' | '/api/auth/$'
+  to:
+    | '/'
+    | '/auth/callback'
+    | '/auth/signout'
+    | '/doc/$id'
+    | '/s/$shareId'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/auth/callback'
+    | '/auth/signout'
     | '/doc/$id'
     | '/s/$shareId'
     | '/api/auth/$'
@@ -80,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  AuthSignoutRoute: typeof AuthSignoutRoute
   DocIdRoute: typeof DocIdRoute
   SShareIdRoute: typeof SShareIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -99,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/callback'
       fullPath: '/auth/callback'
       preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signout': {
+      id: '/auth/signout'
+      path: '/auth/signout'
+      fullPath: '/auth/signout'
+      preLoaderRoute: typeof AuthSignoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/doc/$id': {
@@ -128,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  AuthSignoutRoute: AuthSignoutRoute,
   DocIdRoute: DocIdRoute,
   SShareIdRoute: SShareIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

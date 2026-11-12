@@ -1,36 +1,36 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
-import { LoaderCircle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Link, createFileRoute, redirect } from '@tanstack/react-router'
+import { useState } from 'react'
 import { authClient, must } from '@folio/ui/auth-client.ts'
-import { useViewer } from '@folio/ui/viewer.tsx'
-import { AuthShell, Field, afterAuth, toSearch } from '../auth-shell.tsx'
+import { AuthShell, AuthSubmit, Field, afterAuth, toSearch, useBusy } from '../auth-shell.tsx'
 
 export const Route = createFileRoute('/signup')({
   validateSearch: toSearch,
+  // Already signed in: continue straight away, from the server, before the form renders.
+  beforeLoad: ({ context, search }) => {
+    if (context.viewer) throw redirect({ href: afterAuth(search.to), reloadDocument: true })
+  },
   head: () => ({ meta: [{ title: 'Create account · Folio' }] }),
   component: Signup,
 })
 
 function Signup() {
   const { to } = Route.useSearch()
-  const viewer = useViewer()
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useBusy()
   const [err, setErr] = useState('')
   const [pw, setPw] = useState('')
-
-  useEffect(() => { if (viewer) location.replace(afterAuth(to)) }, [viewer, to])
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
-    setBusy(true)
+    setBusy('sending')
     setErr('')
     try {
       await must(authClient().signUp.email({ name: String(f.get('name')).trim(), email: String(f.get('email')), password: pw }))
+      setBusy('opening')
       location.assign(afterAuth(to))
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Could not create your account')
-      setBusy(false)
+      setBusy('')
     }
   }
 
@@ -46,7 +46,7 @@ function Signup() {
           hint={<span className="strength" data-level={pw ? strength : 0}><i /><i /><i /><i />
             {pw.length < 8 ? 'At least 8 characters' : ['Weak', 'Weak', 'Okay', 'Good', 'Strong'][strength]}</span>} />
         {err && <p className="form-error" role="alert">{err}</p>}
-        <button className="btn accent wide-btn" disabled={busy}>{busy && <LoaderCircle size={16} className="spin" />}Create account</button>
+        <AuthSubmit busy={busy} to={to} label="Create account" sending="Creating account…" />
       </form>
     </AuthShell>
   )
