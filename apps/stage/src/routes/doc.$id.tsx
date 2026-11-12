@@ -4,7 +4,7 @@ import {
   AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Bold, Copy, FileDown, Italic, LayoutTemplate, List, ListOrdered, Palette, Play, Plus, Trash2, Underline,
 } from 'lucide-react'
 import { useAutosave } from '@folio/ui/autosave.tsx'
-import { EditorBar, ShareDialog, Tool } from '@folio/ui/chrome.tsx'
+import { EditorBar, EditorSkeleton, ShareDialog, Tool } from '@folio/ui/chrome.tsx'
 import { Select } from '@folio/ui/Select.tsx'
 import { LAYOUTS, SlideView, THEMES, newSlide, parseDeck, sanitizeDeck, type Deck, type Layout, type Slide, type ThemeId } from '../deck.tsx'
 import { Presenter } from '../presenter.tsx'
@@ -12,6 +12,7 @@ import { storeFor, useDocs } from '../docs'
 
 export const Route = createFileRoute('/doc/$id')({
   ssr: false, // guests' files live in localStorage
+  pendingComponent: () => <EditorSkeleton app="stage" />, // also the server HTML
   loader: ({ context, params }) => storeFor(context.viewer).get(Number(params.id)),
   component: function DocPage() {
     const doc = Route.useLoaderData()
@@ -20,7 +21,7 @@ export const Route = createFileRoute('/doc/$id')({
     useEffect(() => setDeck(sanitizeDeck(parseDeck(doc.content))), [doc.id])
     return deck
       ? <Stage key={doc.id} doc={doc} initial={deck} />
-      : <div className="app"><div className="stage-loading" aria-busy="true" /></div>
+      : <EditorSkeleton app="stage" />
   },
 })
 

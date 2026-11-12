@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ArrowRight, ArrowUpRight, Cloud, Link2, Lock, MoonStar } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { APPS, Mark, SUITE, urlFor } from '@folio/ui/apps.tsx'
-import { AccountMenu } from '@folio/ui/nav.tsx'
+import { AccountMenu, appLink } from '@folio/ui/nav.tsx'
 import { useViewer } from '@folio/ui/viewer.tsx'
 
 export const Route = createFileRoute('/')({ component: Landing })
@@ -21,7 +21,7 @@ function Landing() {
       <header className="l-nav">
         <span className="l-brand"><Mark color={SUITE.color} icon={SUITE.icon} size={32} /> Folio</span>
         <nav aria-label="Apps">
-          {APPS.map((a) => <a key={a.id} href={urlFor(a.id)}>{a.short}</a>)}
+          {APPS.map((a) => <a key={a.id} href={appLink(a.id, viewer)}>{a.short}</a>)}
         </nav>
         <div className="l-auth">
           {viewer ? <AccountMenu /> : (<>
@@ -45,7 +45,7 @@ function Landing() {
 
       <section className="l-apps" aria-label="Folio apps">
         {APPS.map((a, i) => (
-          <a key={a.id} href={urlFor(a.id)} className="l-app" style={{ '--app': a.color, '--i': i } as CSSProperties}>
+          <a key={a.id} href={appLink(a.id, viewer)} className="l-app" style={{ '--app': a.color, '--i': i } as CSSProperties}>
             <div className="l-app-art" aria-hidden>
               {a.id === 'write' && <WriteArt />}
               {a.id === 'grid' && <GridArt />}

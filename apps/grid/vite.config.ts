@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  publicDir: '../../packages/ui/public', // sw.js, shared by every app
   server: { port: 3002, strictPort: true },
   // Pre-bundle up front; discovering it mid-request reloads the server once and can mix two React copies in SSR.
   optimizeDeps: { include: ['better-auth/react'] },

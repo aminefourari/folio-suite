@@ -14,6 +14,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthHandoffRouteImport } from './routes/auth/handoff'
+import { Route as AuthSignoutRouteImport } from './routes/auth/signout'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const AuthHandoffRoute = AuthHandoffRouteImport.update({
   path: '/auth/handoff',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthSignoutRoute = AuthSignoutRouteImport.update({
+  id: '/auth/signout',
+  path: '/auth/signout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/auth/handoff': typeof AuthHandoffRoute
+  '/auth/signout': typeof AuthSignoutRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/auth/handoff': typeof AuthHandoffRoute
+  '/auth/signout': typeof AuthSignoutRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -70,14 +78,28 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/auth/handoff': typeof AuthHandoffRoute
+  '/auth/signout': typeof AuthSignoutRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/account' | '/login' | '/signup' | '/auth/handoff' | '/api/auth/$'
+    | '/'
+    | '/account'
+    | '/login'
+    | '/signup'
+    | '/auth/handoff'
+    | '/auth/signout'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/account' | '/login' | '/signup' | '/auth/handoff' | '/api/auth/$'
+  to:
+    | '/'
+    | '/account'
+    | '/login'
+    | '/signup'
+    | '/auth/handoff'
+    | '/auth/signout'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
@@ -85,6 +107,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/auth/handoff'
+    | '/auth/signout'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -94,6 +117,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   AuthHandoffRoute: typeof AuthHandoffRoute
+  AuthSignoutRoute: typeof AuthSignoutRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -134,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthHandoffRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/signout': {
+      id: '/auth/signout'
+      path: '/auth/signout'
+      fullPath: '/auth/signout'
+      preLoaderRoute: typeof AuthSignoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -150,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   AuthHandoffRoute: AuthHandoffRoute,
+  AuthSignoutRoute: AuthSignoutRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

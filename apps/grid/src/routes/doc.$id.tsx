@@ -4,7 +4,7 @@ import {
   AlignCenter, AlignLeft, AlignRight, Bold, Download, Eraser, FunctionSquare, Italic, Redo2, Sigma, Undo2, Upload,
 } from 'lucide-react'
 import { useAutosave } from '@folio/ui/autosave.tsx'
-import { EditorBar, ShareDialog, Tool } from '@folio/ui/chrome.tsx'
+import { EditorBar, EditorSkeleton, ShareDialog, Tool } from '@folio/ui/chrome.tsx'
 import { Select } from '@folio/ui/Select.tsx'
 import { download, pickFile } from '@folio/ui/util.ts'
 import { Err, FUNCTION_NAMES, colName, parseRef, ref } from '../formula.ts'
@@ -16,6 +16,7 @@ import { storeFor, useDocs } from '../docs'
 
 export const Route = createFileRoute('/doc/$id')({
   ssr: false, // guests' files live in localStorage
+  pendingComponent: () => <EditorSkeleton app="grid" />, // also the server HTML
   loader: ({ context, params }) => storeFor(context.viewer).get(Number(params.id)),
   component: function DocPage() {
     const doc = Route.useLoaderData()

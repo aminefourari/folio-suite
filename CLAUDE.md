@@ -19,23 +19,30 @@ PowerPoint, Office) or Google (Docs, Sheets, Slides) product names or look-alike
 ## Structure
 - `packages/ui/src/` (imported as `@folio/ui/<file>` with the extension):
   - `apps.tsx`: app registry (names, colours, ports, workers.dev URLs via `urlFor`), Google Fonts URL, `DOC_FONTS`, favicons
-  - `root.tsx`: shared `<head>` and HTML shell. `styles.css`: design tokens and shared components.
+  - `root.tsx`: shared `<head>` (preloads the self-hosted UI font, preconnects to the other Folio origins) and HTML shell, which adds the Google Fonts stylesheet (document fonts) after the first paint and renders `NavProgress`. `styles.css`: design tokens and shared components; the UI font is `@font-face` `'Folio UI'` from `public/fonts` (its own family name so the Google stylesheet's `Instrument Sans` doesn't override it).
   - `Select.tsx`: custom ARIA listbox select. Don't use native `<select>`.
   - `autosave.tsx`: `useAutosave(persist)` and `SaveBadge`
   - `chrome.tsx`: `SuiteNav`, `FileHome` (files grid), `EditorBar`, `Tool`/`WideTool` toolbar buttons
   - `server.ts`: D1 document storage, every query scoped by the signed-in user's id (`requireUserId`). Server only: import it only inside `createServerFn` handlers.
-  - `local.ts`: guest storage in `localStorage` with the same `DocStore` API, and `moveToAccount` (runs after a guest signs in via "Save online", `?save=<id>`)
-  - `auth.server.ts`: the Better Auth instance (D1, PBKDF2 from `password.ts`, D1-backed rate limits, one-time tokens). `auth-routes.ts`: `/api/auth/*`, `/auth/callback` (apps) and `/auth/handoff` (hub) handlers.
-  - `session.ts`: `getViewer` server function. `viewer.tsx`: viewer context and `isPublicPath`. `auth-client.ts`: browser Better Auth client.
-  - `urls.ts`: app origins and redirect guards (`safeAppUrl`, `safePath`); plain TS so tests can import it
-  - `nav.tsx` (`SuiteNav`, `AccountMenu`), `Menu.tsx`, `popover.ts` (shared positioning for Menu and Select), `status-pages.tsx` (404 and error pages)
+  - `local.ts`: guest storage in `localStorage` with the same `DocStore` API, `moveToAccount` (runs after a guest signs in via "Save online", `?save=<id>`), and `keepUnsynced`, which wraps each app's `cloud` store so account edits that fail to send (offline) wait in `localStorage` and are resent by the next `list`/`get`
+- `packages/ui/public/` is every app's `publicDir` (see each `vite.config.ts`):
+  - `sw.js`: network-first offline cache; only the desktop app registers it, never browsers, because it keeps account files on disk.
+  - `_headers`: Workers static-asset headers. `/assets/*` (hashed) and `/fonts/*` are cached for a year as `immutable`, so give a changed font a new file name. `sw.js` keeps revalidating.
+  - `fonts/instrument-sans-latin.woff2`: the UI font (OFL).
+  - `auth.server.ts`: the Better Auth instance (D1, PBKDF2 from `password.ts`, D1-backed rate limits, one-time tokens, a 5-minute session cookie cache). `requireUserId()` trusts the cache (reads); `requireUserId('fresh')` rechecks the session row (writes). `auth-routes.ts`: `/api/auth/*`, `/auth/callback` (apps), `/auth/handoff` (hub) and `/auth/signout` (every app) handlers.
+  - `session.ts`: `getViewer` server function; `loadViewer` (server: calls it; browser: once per page, seeded from the server render by `ViewerProvider`, call `forgetViewer()` before `router.invalidate()` when the viewer changes in place); `appContext`, the three app roots' `beforeLoad`, which also handles `?sso=1`. `viewer.tsx`: `ViewerProvider` (also strips `sso` from the address bar), `useViewer`. `auth-client.ts`: browser Better Auth client.
+  - `urls.ts`: app origins, `isPublicPath` and redirect guards (`safeAppUrl`, `safePath`); plain TS so tests can import it
+  - `nav.tsx` (`SuiteNav`, `AccountMenu`, `appLink`, `NavProgress`: thin top bar for in-app navigations over 150 ms and for leaving to another app), `Menu.tsx`, `popover.ts` (shared positioning for Menu and Select), `status-pages.tsx` (404 and error pages)
   - `cloudflare.d.ts`: minimal D1 and `cloudflare:workers` types (the full workers-types package clashes with DOM types)
   - `util.ts`: `sanitize` (browser only), CSV/download helpers, relative time
 - `apps/<app>/src/docs.ts`: thin `createServerFn` wrappers around `server.ts` (the compiler needs them at top level in app code)
-- `apps/<app>/src/routes/`: `index.tsx` (files grid), `doc.$id.tsx` (editor), `s/$shareId.tsx` (public read-only view), `auth/callback.ts` and `api/auth/$.ts`. No sign-in is required: the root's `beforeLoad` puts `viewer` (or null) in context, and `storeFor(viewer)` in `docs.ts` picks the account (D1) or this browser (`local.ts`). `index` and `doc.$id` set `ssr: false` because guest files only exist in the browser. `routeTree.gen.ts` is generated; commit it, never edit it.
-- `apps/landing/src/routes/`: `login`, `signup`, `account`, `auth/handoff.ts`
+- `apps/<app>/src/routes/`: `index.tsx` (files grid), `doc.$id.tsx` (editor), `s/$shareId.tsx` (public read-only view), `auth/callback.ts`, `auth/signout.ts` and `api/auth/$.ts`. No sign-in is required: the root's `beforeLoad` puts `viewer` (or null) in context, and `storeFor(viewer)` in `docs.ts` picks the account (D1) or this browser (`local.ts`). `index` and `doc.$id` set `ssr: false` because guest files only exist in the browser; their `pendingComponent` (`FileHomeSkeleton` / `EditorSkeleton` in `chrome.tsx`) is what the server renders, so the nav and page outline are in the first HTML. Each `router.tsx` sets `defaultPendingMs: 150, defaultPendingMinMs: 0`.
+- Switching apps: links to another app made while signed in go through `appLink`, which adds `?sso=1`. An app that gets `sso` with no session redirects (server side) through the hub's hand-off back to its own URL without `sso`, so a signed-in user never lands as a guest. `routeTree.gen.ts` is generated; commit it, never edit it.
+- `apps/landing/src/routes/`: `login`, `signup` (signed-in visitors are redirected in `beforeLoad`, on the server), `account`, `auth/handoff.ts`
 - `apps/<app>/src/templates.tsx`: templates for new files
 - `apps/<app>/wrangler.jsonc`: Worker name and D1 binding `DB`
+- `apps/desktop/`: Electron app (macOS, Windows, Linux) that opens the deployed suite in a window, so it is the web UI unchanged. Folio origins stay in the app, other links open in the browser, and `preload.cjs` adds the `window.prompt()` Electron lacks and registers `/sw.js` for offline use. Keep its origin list in sync with `urls.ts`.
+  - `pnpm --filter @folio/desktop start` (production), `dev` (against `pnpm dev`), `dist` (installers into `apps/desktop/dist`: dmg, NSIS, AppImage; build each on its own OS)
 
 ## Conventions
 - Each app sets its accent with `:root { --app: … }` at the top of its `app.css`; keep it in sync with `APPS`.
@@ -45,4 +52,5 @@ PowerPoint, Office) or Google (Docs, Sheets, Slides) product names or look-alike
 - Limits live in `server.ts`: 1.5 MB per file and 200 files per user per app. Auth rate limits live in `auth.server.ts`.
 - Module-level code runs on Workers at import time, so it can't use random values, and the server renders in UTC. Don't put `crypto.randomUUID()` or dates in templates or other module-level data (it causes hydration mismatches).
 - Every redirect target from a query string goes through `safeAppUrl` or `safePath`.
+- Sessions use Better Auth's cookie cache (5 minutes), so a deleted session still reads until its cache expires. Anything in `server.ts` that changes data calls `requireUserId('fresh')`; only reads may use the cached check. Signing out goes through `signOutEverywhere()` (nav.tsx), a top-level redirect chain through every app's `/auth/signout` (write → grid → stage → landing → `/login`, next hops are constants), because each app is its own origin with its own cookies. Anything that ends the session in the browser must finish through it, never the client `signOut`.
 - Schema changes go in a new numbered file in `packages/ui/migrations/`; never edit an applied migration.

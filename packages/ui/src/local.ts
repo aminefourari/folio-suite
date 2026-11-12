@@ -82,3 +82,67 @@ export async function moveToAccount(kind: string, cloud: DocStore) {
   }
   return moved
 }
+
+type Unsynced = Record<string, { title: string; content: string }>
+// Errors a retry can't fix: drop the copy instead of retrying it forever.
+const PERMANENT = /too large|no longer exists|invalid/i
+
+/**
+ * Wraps the account store so an edit that can't reach the server (offline) is kept on this device and never lost.
+ * `save` writes the edit here before sending it and clears it once the server has it. `get` and `list` first resend
+ * whatever is still waiting, then `get` shows any edit still unsent instead of the server's older copy.
+ */
+export function keepUnsynced(kind: string, cloud: DocStore): DocStore {
+  const key = `folio:${kind}:unsynced`
+  const read = (): Unsynced => {
+    try { return JSON.parse(localStorage.getItem(key) || '{}') } catch { return {} }
+  }
+  const write = (m: Unsynced) => {
+    try { localStorage.setItem(key, JSON.stringify(m)) } catch { /* full: the save itself still goes to the server */ }
+  }
+  const forget = (id: number, sent?: { title: string; content: string }) => {
+    const m = read()
+    const kept = m[id]
+    // Keep a newer edit made while this one was in flight.
+    if (kept && (!sent || (kept.title === sent.title && kept.content === sent.content))) { delete m[id]; write(m) }
+  }
+  const send = async (d: { id: number; title: string; content: string }) => {
+    try {
+      const r = await cloud.save(d)
+      forget(d.id, d)
+      return r
+    } catch (e) {
+      if (PERMANENT.test(e instanceof Error ? e.message : '')) forget(d.id, d)
+      else if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        throw new Error('You’re offline. Your changes are kept on this device and save when you’re back online.')
+      }
+      throw e
+    }
+  }
+  const resend = async (only?: number) => {
+    for (const [id, d] of Object.entries(read())) {
+      if (only === undefined || Number(id) === only) await send({ id: Number(id), ...d }).catch(() => {})
+    }
+  }
+  return {
+    ...cloud,
+    list: async () => { await resend(); return cloud.list() },
+    get: async (id) => {
+      await resend(id)
+      const doc = await cloud.get(id)
+      const kept = read()[id]
+      return kept ? { ...doc, ...kept } : doc
+    },
+    save: async (d) => {
+      write({ ...read(), [d.id]: { title: d.title, content: d.content } })
+      return send(d)
+    },
+    rename: async (id, title) => {
+      const r = await cloud.rename(id, title)
+      const m = read()
+      if (m[id]) { m[id].title = title.trim().slice(0, 200); write(m) }
+      return r
+    },
+    remove: async (id) => { const r = await cloud.remove(id); forget(id); return r },
+  }
+}

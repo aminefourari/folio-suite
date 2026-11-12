@@ -1,5 +1,6 @@
-import { Mark, SUITE, safeAppUrl } from '@folio/ui/apps.tsx'
-import type { ReactNode } from 'react'
+import { APPS, Mark, SUITE, safeAppUrl, urlFor } from '@folio/ui/apps.tsx'
+import { LoaderCircle } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 /** After signing in or up: continue to the app that asked (via the SSO hand-off), else the landing page. */
 export const afterAuth = (to?: string) => (safeAppUrl(to) ? `/auth/handoff?to=${encodeURIComponent(to!)}` : '/')
@@ -27,5 +28,30 @@ export function Field({ label, hint, ...input }: { label: string; hint?: ReactNo
       <input {...input} />
       {hint && <small>{hint}</small>}
     </label>
+  )
+}
+
+export type Busy = '' | 'sending' | 'opening'
+
+/** Submit state that resets when the back/forward cache restores the page mid-redirect. */
+export function useBusy() {
+  const [busy, setBusy] = useState<Busy>('')
+  useEffect(() => {
+    const reset = (e: PageTransitionEvent) => { if (e.persisted) setBusy('') }
+    addEventListener('pageshow', reset)
+    return () => removeEventListener('pageshow', reset)
+  }, [])
+  return [busy, setBusy] as const
+}
+
+/** Submit button that says what is happening: the request, then the app the browser is opening. */
+export function AuthSubmit({ busy, to, label, sending }: { busy: Busy; to?: string; label: string; sending: string }) {
+  const target = safeAppUrl(to)
+  const app = target && APPS.find((a) => new URL(urlFor(a.id)).origin === target.origin)
+  return (
+    <button className="btn accent wide-btn" disabled={!!busy} aria-live="polite">
+      {busy && <LoaderCircle size={16} className="spin" />}
+      {busy === 'sending' ? sending : busy === 'opening' ? `Opening ${app ? app.name : 'Folio'}…` : label}
+    </button>
   )
 }

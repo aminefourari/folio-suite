@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouter } from '@tanstack/react-router'
 import {
-  Check, ChevronLeft, CloudUpload, Copy, CopyPlus, ExternalLink, FileSearch, HardDrive, Link2, MoreHorizontal, PencilLine, Plus, Search,
+  Check, ChevronLeft, CloudUpload, Copy, CopyPlus, ExternalLink, FileSearch, HardDrive, Link2, LoaderCircle, MoreHorizontal, PencilLine, Plus, Search,
   Share2, Trash2,
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
@@ -109,6 +109,8 @@ export function FileHome({ app: id, docs, templates, cloud, fill = (c) => c, pre
   const navigate = useNavigate()
   const router = useRouter()
   const [busy, setBusy] = useState(false)
+  const [creating, setCreating] = useState<string | null>(null) // 'blank' or a template name
+  const [working, setWorking] = useState<number[]>([]) // cards with a rename, duplicate or delete in flight
   const [err, setErr] = useState('')
   const [notice, setNotice] = useState('')
   const [onDevice, setOnDevice] = useState(0) // signed in, but files still in this browser
@@ -124,8 +126,16 @@ export function FileHome({ app: id, docs, templates, cloud, fill = (c) => c, pre
   }
   const open = (docId: number) => navigate({ to: '/doc/$id', params: { id: String(docId) } })
   const onCreate = (t?: Template) => attempt(async () => {
-    setBusy(true)
-    try { await open(await store.create(t ? { title: t.title, content: fill(t.content) } : {})) } finally { setBusy(false) }
+    setCreating(t ? t.name : 'blank')
+    try { await open(await store.create(t ? { title: t.title, content: fill(t.content) } : {})) } finally { setCreating(null) }
+  })
+  /** Runs a card action, dimming the card until the list has refreshed. */
+  const onCard = (docId: number, f: () => Promise<unknown>) => attempt(async () => {
+    setWorking((w) => [...w, docId])
+    try {
+      await f()
+      await router.invalidate()
+    } finally { setWorking((w) => w.filter((x) => x !== docId)) }
   })
   const moveHere = (openId?: number) => attempt(async () => {
     if (moving.current) return
@@ -154,21 +164,16 @@ export function FileHome({ app: id, docs, templates, cloud, fill = (c) => c, pre
       if (l.length && save !== null) moveHere(Number(save) || undefined)
     })
   }, [])
-  const onRemove = (d: DocSummary) => attempt(async () => {
-    if (!confirm(`Delete “${d.title || `Untitled ${app.noun}`}”? This can’t be undone.`)) return
-    await store.remove(d.id)
-    await router.invalidate()
-  })
-  const onRename = (d: DocSummary, title: string) => attempt(async () => {
+  const onRemove = (d: DocSummary) => {
+    if (confirm(`Delete “${d.title || `Untitled ${app.noun}`}”? This can’t be undone.`)) onCard(d.id, () => store.remove(d.id))
+  }
+  const onRename = (d: DocSummary, title: string) => {
     setRenaming(null)
-    if (title.trim() === d.title) return
-    await store.rename(d.id, title)
-    await router.invalidate()
-  })
-  const onDuplicate = (d: DocSummary) => attempt(async () => {
-    await store.duplicate(d.id)
-    await router.invalidate()
-  })
+    if (title.trim() !== d.title) onCard(d.id, () => store.rename(d.id, title))
+  }
+  const onDuplicate = (d: DocSummary) => onCard(d.id, () => store.duplicate(d.id))
+  const making = busy || creating !== null
+  const plus = (key: string, size = 16) => creating === key ? <LoaderCircle size={size} className="spin" /> : <Plus size={size} />
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -193,7 +198,7 @@ export function FileHome({ app: id, docs, templates, cloud, fill = (c) => c, pre
           )}
         </div>
         <div className="spacer" />
-        <button className="btn accent" onClick={() => onCreate()} disabled={busy}><Plus size={16} />New {app.noun}</button>
+        <button className="btn accent" onClick={() => onCreate()} disabled={making} aria-busy={creating === 'blank'}>{plus('blank')}New {app.noun}</button>
       </header>
       {err && <p className="banner" role="alert">{err}</p>}
       {!viewer && (
@@ -215,14 +220,14 @@ export function FileHome({ app: id, docs, templates, cloud, fill = (c) => c, pre
       <section className="templates" aria-label="Start from a template">
         <h2>Start from a template</h2>
         <div className="template-row">
-          <button className="template blank" onClick={() => onCreate()} disabled={busy}>
-            <span className="template-thumb"><span className="plus"><Plus size={22} /></span></span>
+          <button className="template blank" onClick={() => onCreate()} disabled={making} aria-busy={creating === 'blank'}>
+            <span className="template-thumb"><span className="plus">{plus('blank', 22)}</span></span>
             <strong>Blank {app.noun}</strong>
             <small>Start from scratch</small>
           </button>
           {templates.map((t) => (
-            <button key={t.name} className="template" onClick={() => onCreate(t)} disabled={busy}>
-              <span className="template-thumb">{t.preview}</span>
+            <button key={t.name} className="template" onClick={() => onCreate(t)} disabled={making} aria-busy={creating === t.name}>
+              <span className="template-thumb">{t.preview}{creating === t.name && <span className="plus making">{plus(t.name, 22)}</span>}</span>
               <strong>{t.name}</strong>
               <small>{t.blurb}</small>
             </button>
@@ -247,7 +252,7 @@ export function FileHome({ app: id, docs, templates, cloud, fill = (c) => c, pre
           {shown.map((d, i) => {
             const title = d.title || `Untitled ${app.noun}`
             return (
-              <article key={d.id} className="card doc" style={{ '--i': Math.min(i, 12) } as CSSProperties}>
+              <article key={d.id} className="card doc" style={{ '--i': Math.min(i, 6) } as CSSProperties} aria-busy={working.includes(d.id) || undefined}>
                 <Link to="/doc/$id" params={{ id: String(d.id) }} className="cover" aria-label={`Open ${title}`} />
                 <div className="thumb">
                   {preview(d)}
@@ -295,6 +300,37 @@ export function FileHome({ app: id, docs, templates, cloud, fill = (c) => c, pre
           await router.invalidate()
           return s
         }} />
+    </div>
+  )
+}
+
+/** Pending view of the files grid: the real nav and hero, placeholder cards. Rendered in the server HTML. */
+export function FileHomeSkeleton({ app: id }: { app: AppId }) {
+  const app = appById(id)
+  return (
+    <div className="home" style={{ '--app': app.color } as CSSProperties} aria-busy="true">
+      <SuiteNav current={id} />
+      <header className="hero">
+        <Mark color={app.color} icon={app.icon} size={52} />
+        <div><span className="skeleton line" style={{ width: 240, height: 28 }} /><span className="skeleton line" style={{ width: 180 }} /></div>
+      </header>
+      <div className="grid skeleton-grid">{[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="skeleton tile" />)}</div>
+    </div>
+  )
+}
+
+/** Pending view of an editor: the top bar, the toolbar and an empty page, sheet or slide where it will be. */
+export function EditorSkeleton({ app: id }: { app: AppId }) {
+  const app = appById(id)
+  return (
+    <div className="app" style={{ '--app': app.color } as CSSProperties} aria-busy="true">
+      <header className="topbar">
+        <Link to="/" className="back" aria-label={`All ${app.noun}s`}><ChevronLeft size={18} /></Link>
+        <span className="topbar-mark"><Mark color={app.color} icon={app.icon} size={30} /></span>
+        <span className="skeleton line" style={{ width: 180, height: 22, margin: '0 10px' }} />
+      </header>
+      <div className="toolbar"><span className="skeleton line" style={{ width: '45%', height: 30, margin: 0 }} /></div>
+      <div className="skeleton editor-ghost" data-app={id} />
     </div>
   )
 }
