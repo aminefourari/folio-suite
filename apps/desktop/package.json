@@ -1,0 +1,25 @@
+{
+  "name": "@folio/desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Folio desktop app: the web suite in an Electron window",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "FOLIO_URL=http://localhost:3000/ electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "45.3.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "app.folio.desktop",
+    "productName": "Folio",
+    "files": ["main.js", "preload.cjs"],
+    "mac": { "target": "dmg", "category": "public.app-category.productivity" },
+    "win": { "target": "nsis" },
+    "linux": { "target": "AppImage", "category": "Office" }
+  }
+}
